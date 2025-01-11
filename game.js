@@ -10,101 +10,6 @@ const GAME_CONFIG = {
     LEVEL_UP_SCORE: 100
 };
 
-// Hayvan Özellikleri
-const ANIMALS = {
-    SNAKE: {
-        name: 'Yılan',
-        color: '#0f0',
-        speed: GAME_CONFIG.INITIAL_SPEED,
-        specialAbility: null,
-        movement: 'normal'
-    },
-    FROG: {
-        name: 'Kurbağa',
-        color: '#0f9',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.8,
-        specialAbility: 'jump',
-        movement: 'hop'
-    },
-    RABBIT: {
-        name: 'Tavşan',
-        color: '#fff',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.7,
-        specialAbility: 'turbo',
-        movement: 'accelerate'
-    },
-    TIGER: {
-        name: 'Kaplan',
-        color: '#f90',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.6,
-        specialAbility: 'claw',
-        movement: 'normal'
-    },
-    EAGLE: {
-        name: 'Kartal',
-        color: '#99f',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.5,
-        specialAbility: 'fly',
-        movement: 'free'
-    },
-    CROCODILE: {
-        name: 'Timsah',
-        color: '#090',
-        speed: GAME_CONFIG.INITIAL_SPEED * 1.2,
-        specialAbility: 'crush',
-        movement: 'heavy'
-    },
-    WOLF: {
-        name: 'Kurt',
-        color: '#999',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.4,
-        specialAbility: 'pack',
-        movement: 'normal'
-    },
-    DRAGON: {
-        name: 'Ejderha',
-        color: '#f00',
-        speed: GAME_CONFIG.INITIAL_SPEED * 0.3,
-        specialAbility: 'fireball',
-        movement: 'fly'
-    }
-};
-
-// Güç Özellikleri Sabitleri
-const POWER_UPS = {
-    SPEED: {
-        name: 'Hız Artışı',
-        color: '#ff0',
-        duration: 5000,
-        apply: () => { gameSpeed = Math.max(GAME_CONFIG.MIN_SPEED, gameSpeed * 0.7); },
-        remove: () => { gameSpeed = GAME_CONFIG.INITIAL_SPEED - (level - 1) * GAME_CONFIG.SPEED_DECREASE; }
-    },
-    REVERSE: {
-        name: 'Ters Kontrol',
-        color: '#f0f',
-        duration: 5000,
-        apply: () => {},
-        remove: () => {}
-    },
-    GHOST: {
-        name: 'Hayalet Modu',
-        color: '#fff',
-        duration: 5000,
-        apply: () => {},
-        remove: () => {}
-    },
-    SHRINK: {
-        name: 'Küçülme',
-        color: '#0ff',
-        duration: 3000,
-        apply: () => {
-            const reduction = Math.min(3, Math.floor(snake.length / 2));
-            snake = snake.slice(0, snake.length - reduction);
-        },
-        remove: () => {}
-    }
-};
-
 // Canvas ve Ses Öğeleri
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -112,10 +17,6 @@ const ctx = canvas.getContext('2d');
 // Canvas boyutunu ayarla
 canvas.width = GAME_CONFIG.GRID_COUNT * GAME_CONFIG.GRID_SIZE;
 canvas.height = GAME_CONFIG.GRID_COUNT * GAME_CONFIG.GRID_SIZE;
-
-const eatSound = document.getElementById('eatSound');
-const levelUpSound = document.getElementById('levelUpSound');
-const gameOverSound = document.getElementById('gameOverSound');
 
 // Oyun Durumu
 let gameState = {
@@ -130,106 +31,34 @@ let gameState = {
     gameSpeed: GAME_CONFIG.INITIAL_SPEED,
     gameLoop: null,
     lastRenderTime: 0,
-    gameStarted: false,
-    powerUpActive: false,
-    powerUpType: null,
-    powerUpTimer: null,
-    specialAbilityActive: false,
-    specialAbilityTimer: null,
-    lives: 1,
-    gridCount: GAME_CONFIG.GRID_COUNT
+    gameStarted: false
 };
 
-// Dokunmatik kontroller için değişkenler
-let touchStartX = 0;
-let touchStartY = 0;
-const MIN_SWIPE_DISTANCE = 30;
-
-// Dokunmatik kontrolleri başlat
-function initializeTouchControls() {
-    // Kaydırma kontrolleri
-    document.addEventListener('touchstart', handleTouchStart, false);
-    document.addEventListener('touchmove', handleTouchMove, false);
-    document.addEventListener('touchend', handleTouchEnd, false);
-
-    // Ekrana dokunma ile yeniden başlatma
-    document.addEventListener('click', handleScreenTap, false);
-
-    // Dokunmatik butonlar
-    const touchButtons = document.querySelectorAll('.touch-btn');
-    touchButtons.forEach(button => {
-        button.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleTouchButton(button.dataset.direction);
-        });
-    });
+// Yılan Başlangıç Pozisyonu
+function initializeSnake() {
+    const centerPos = Math.floor(GAME_CONFIG.GRID_COUNT / 2);
+    return [
+        { x: centerPos, y: centerPos },
+        { x: centerPos - 1, y: centerPos },
+        { x: centerPos - 2, y: centerPos }
+    ];
 }
 
-function handleTouchButton(direction) {
-    if (direction === 'special') {
-        useSpecialAbility();
-        return;
-    }
-
-    const directionMap = {
-        'up': { x: 0, y: -1 },
-        'down': { x: 0, y: 1 },
-        'left': { x: -1, y: 0 },
-        'right': { x: 1, y: 0 }
-    };
-
-    const newDirection = directionMap[direction];
-    if (!newDirection) return;
-
-    if (ANIMALS[gameState.currentAnimal].movement === 'free') {
-        gameState.nextDirection = newDirection;
-    } else {
-        const currentDirection = gameState.direction;
-        if (newDirection.x === -currentDirection.x || newDirection.y === -currentDirection.y) {
-            return;
-        }
-        gameState.nextDirection = newDirection;
-    }
+// Yem Oluşturma
+function createFood() {
+    let newFood;
+    do {
+        newFood = {
+            x: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT),
+            y: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT)
+        };
+    } while (gameState.snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+    
+    gameState.food = newFood;
 }
 
-function handleTouchStart(evt) {
-    const firstTouch = evt.touches[0];
-    touchStartX = firstTouch.clientX;
-    touchStartY = firstTouch.clientY;
-}
-
-function handleTouchMove(evt) {
-    if (!touchStartX || !touchStartY) return;
-
-    evt.preventDefault();
-    const xDiff = touchStartX - evt.touches[0].clientX;
-    const yDiff = touchStartY - evt.touches[0].clientY;
-
-    if (Math.abs(xDiff) > Math.abs(yDiff)) {
-        if (Math.abs(xDiff) < MIN_SWIPE_DISTANCE) return;
-        handleTouchButton(xDiff > 0 ? 'left' : 'right');
-    } else {
-        if (Math.abs(yDiff) < MIN_SWIPE_DISTANCE) return;
-        handleTouchButton(yDiff > 0 ? 'up' : 'down');
-    }
-
-    touchStartX = 0;
-    touchStartY = 0;
-}
-
-function handleTouchEnd() {
-    touchStartX = 0;
-    touchStartY = 0;
-}
-
-function handleScreenTap() {
-    if (!gameState.gameStarted) {
-        startGame();
-    }
-}
-
-// Oyun Başlatma ve Sıfırlama
-function initializeGame() {
+// Oyun Başlatma
+function startGame() {
     gameState = {
         snake: initializeSnake(),
         food: {},
@@ -242,346 +71,80 @@ function initializeGame() {
         gameSpeed: GAME_CONFIG.INITIAL_SPEED,
         gameLoop: null,
         lastRenderTime: 0,
-        gameStarted: false,
-        powerUpActive: false,
-        powerUpType: null,
-        powerUpTimer: null,
-        specialAbilityActive: false,
-        specialAbilityTimer: null,
-        lives: 1,
-        gridCount: GAME_CONFIG.GRID_COUNT
+        gameStarted: true
     };
     
-    if (gameState.powerUpTimer) clearTimeout(gameState.powerUpTimer);
-    if (gameState.specialAbilityTimer) clearTimeout(gameState.specialAbilityTimer);
+    createFood();
+    gameLoop();
     
-    canvas.width = gameState.gridCount * GAME_CONFIG.GRID_SIZE;
-    canvas.height = gameState.gridCount * GAME_CONFIG.GRID_SIZE;
-    
-    updateUI();
-}
-
-// Yılan Başlangıç Pozisyonu
-function initializeSnake() {
-    const centerPos = Math.floor(GAME_CONFIG.GRID_COUNT / 2);
-    return [
-        { x: centerPos, y: centerPos },
-        { x: centerPos - 1, y: centerPos },
-        { x: centerPos - 2, y: centerPos }
-    ];
-}
-
-// Engel Oluşturma
-function createObstacles() {
-    gameState.obstacles = [];
-    const obstacleCount = gameState.level * 2;
-    
-    for (let i = 0; i < obstacleCount; i++) {
-        let obstacle;
-        do {
-            obstacle = {
-                x: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT),
-                y: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT)
-            };
-        } while (!isValidPosition(obstacle));
-        
-        gameState.obstacles.push(obstacle);
-    }
-}
-
-// Pozisyon Geçerlilik Kontrolü
-function isValidPosition(position) {
-    // Yılan kontrolü
-    if (gameState.snake.some(segment => segment.x === position.x && segment.y === position.y)) {
-        return false;
-    }
-    
-    // Yem kontrolü
-    if (gameState.food.x === position.x && gameState.food.y === position.y) {
-        return false;
-    }
-    
-    // Engel kontrolü
-    if (gameState.obstacles.some(obs => obs.x === position.x && obs.y === position.y)) {
-        return false;
-    }
-    
-    return true;
-}
-
-// Yem Oluşturma
-function createFood() {
-    let newFood;
-    do {
-        newFood = {
-            x: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT),
-            y: Math.floor(Math.random() * GAME_CONFIG.GRID_COUNT)
-        };
-    } while (!isValidPosition(newFood));
-    
-    gameState.food = newFood;
-}
-
-// Güç Özelliği Aktivasyonu
-function activatePowerUp() {
-    if (gameState.powerUpActive) return;
-    
-    const powerUpTypes = Object.keys(POWER_UPS);
-    gameState.powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-    gameState.powerUpActive = true;
-    
-    const powerUp = POWER_UPS[gameState.powerUpType];
-    powerUp.apply();
-    
-    updatePowerUpUI(powerUp);
-    
-    gameState.powerUpTimer = setTimeout(() => {
-        powerUp.remove();
-        gameState.powerUpActive = false;
-        gameState.powerUpType = null;
-        document.getElementById('power-up').style.display = 'none';
-    }, powerUp.duration);
-}
-
-// UI Güncelleme
-function updateUI() {
-    document.getElementById('score').textContent = `Skor: ${gameState.score}`;
-    document.getElementById('level').textContent = `Seviye: ${gameState.level}`;
-}
-
-function updatePowerUpUI(powerUp) {
-    const powerUpElement = document.getElementById('power-up');
-    powerUpElement.textContent = powerUp.name + ' aktif!';
-    powerUpElement.style.color = powerUp.color;
-    powerUpElement.style.display = 'block';
+    document.getElementById('message').style.display = 'none';
 }
 
 // Oyun Döngüsü
-function gameStep(currentTime) {
+function gameLoop() {
     if (!gameState.gameStarted) return;
-    
-    gameState.gameLoop = requestAnimationFrame(gameStep);
-    
-    const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
-    if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
-    
-    gameState.lastRenderTime = currentTime;
-    
-    // Hareket güncelleme
-    updateMovement();
     
     updateGame();
     draw();
+    
+    setTimeout(gameLoop, gameState.gameSpeed);
 }
 
 // Oyun Mantığı Güncelleme
 function updateGame() {
+    const head = { ...gameState.snake[0] };
     gameState.direction = gameState.nextDirection;
-    const head = {
-        x: gameState.snake[0].x + gameState.direction.x,
-        y: gameState.snake[0].y + gameState.direction.y
-    };
     
-    if (isCollision(head)) {
+    head.x += gameState.direction.x;
+    head.y += gameState.direction.y;
+    
+    // Duvar çarpışma kontrolü
+    if (head.x < 0 || head.x >= GAME_CONFIG.GRID_COUNT || 
+        head.y < 0 || head.y >= GAME_CONFIG.GRID_COUNT) {
+        gameOver();
+        return;
+    }
+    
+    // Kendine çarpma kontrolü
+    if (gameState.snake.some(segment => segment.x === head.x && segment.y === head.y)) {
         gameOver();
         return;
     }
     
     gameState.snake.unshift(head);
     
+    // Yem yeme kontrolü
     if (head.x === gameState.food.x && head.y === gameState.food.y) {
-        handleFoodCollision();
+        gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
+        document.getElementById('score').textContent = `Skor: ${gameState.score}`;
+        createFood();
     } else {
         gameState.snake.pop();
     }
 }
 
-// Yem Yeme İşlemi
-function handleFoodCollision() {
-    gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
-    updateUI();
-    
-    if (gameState.score >= gameState.level * GAME_CONFIG.LEVEL_UP_SCORE) {
-        levelUp();
-    }
-    
-    createFood();
-    playSound(eatSound);
-    
-    if (Math.random() < GAME_CONFIG.POWER_UP_CHANCE) {
-        activatePowerUp();
-    }
-}
-
-// Seviye Atlama
-function levelUp() {
-    gameState.level++;
-    changeAnimal();
-    createObstacles();
-    createFood();
-    updateUI();
-    playSound(levelUpSound);
-}
-
-// Çarpışma Kontrolü
-function isCollision(position) {
-    // Duvar kontrolü
-    if (ANIMALS[gameState.currentAnimal].movement !== 'fly') {
-        if (position.x < 0 || position.x >= GAME_CONFIG.GRID_COUNT ||
-            position.y < 0 || position.y >= GAME_CONFIG.GRID_COUNT) {
-            return true;
-        }
-    } else {
-        // Duvardan geçiş
-        position.x = (position.x + GAME_CONFIG.GRID_COUNT) % GAME_CONFIG.GRID_COUNT;
-        position.y = (position.y + GAME_CONFIG.GRID_COUNT) % GAME_CONFIG.GRID_COUNT;
-    }
-    
-    // Engel kontrolü
-    if (gameState.obstacles.some(obs => obs.x === position.x && obs.y === position.y)) {
-        if (gameState.currentAnimal === 'WOLF' && gameState.lives > 1) {
-            gameState.lives--;
-            updateAnimalUI();
-            return false;
-        }
-        return true;
-    }
-    
-    // Kendine çarpma kontrolü
-    return gameState.snake.some(segment => segment.x === position.x && segment.y === position.y);
-}
-
-// Ses Çalma
-function playSound(sound) {
-    sound.currentTime = 0;
-    sound.play();
-}
-
-// Oyun Bitişi
-function gameOver() {
-    gameState.gameStarted = false;
-    cancelAnimationFrame(gameState.gameLoop);
-    gameState.gameLoop = null;
-    
-    playSound(gameOverSound);
-    
-    const message = document.getElementById('message');
-    message.textContent = `Oyun Bitti!\nSkor: ${gameState.score}\nSeviye: ${gameState.level}\nTekrar başlamak için dokun`;
-    message.style.display = 'block';
-}
-
 // Çizim İşlemleri
 function draw() {
-    drawBackground();
-    drawObstacles();
-    drawSnake();
-    drawFood();
-}
-
-function drawBackground() {
+    // Arka planı temizle
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawObstacles() {
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = '#888';
-    ctx.fillStyle = '#888';
     
-    gameState.obstacles.forEach(obstacle => {
-        ctx.fillRect(
-            obstacle.x * GAME_CONFIG.GRID_SIZE,
-            obstacle.y * GAME_CONFIG.GRID_SIZE,
-            GAME_CONFIG.GRID_SIZE - 1,
-            GAME_CONFIG.GRID_SIZE - 1
-        );
-    });
-    
-    ctx.shadowBlur = 0;
-}
-
-function drawSnake() {
-    if (gameState.powerUpType === 'GHOST') {
-        ctx.globalAlpha = 0.5;
-    }
-    
-    // Neon efekti için glow
+    // Yılanı çiz
     ctx.shadowBlur = 10;
-    ctx.shadowColor = ANIMALS[gameState.currentAnimal].color;
+    ctx.shadowColor = '#0f0';
+    ctx.fillStyle = '#0f0';
     
     gameState.snake.forEach((segment, index) => {
-        // Ana renk
-        ctx.fillStyle = index === 0 ? 
-            ANIMALS[gameState.currentAnimal].color : 
-            shadeColor(ANIMALS[gameState.currentAnimal].color, -20);
-            
         ctx.fillRect(
             segment.x * GAME_CONFIG.GRID_SIZE,
             segment.y * GAME_CONFIG.GRID_SIZE,
             GAME_CONFIG.GRID_SIZE - 1,
             GAME_CONFIG.GRID_SIZE - 1
         );
-        
-        // İç kısım için daha parlak renk
-        if (index === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(
-                segment.x * GAME_CONFIG.GRID_SIZE + 2,
-                segment.y * GAME_CONFIG.GRID_SIZE + 2,
-                GAME_CONFIG.GRID_SIZE - 5,
-                GAME_CONFIG.GRID_SIZE - 5
-            );
-            drawSnakeEyes(segment);
-        }
     });
     
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
-}
-
-function drawSnakeEyes(head) {
-    ctx.fillStyle = '#000';
-    const eyeSize = 2;
-    const eyeOffset = 3;
-    
-    const eyePositions = {
-        '1,0': [
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset, y: eyeOffset },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
-        ],
-        '-1,0': [
-            { x: eyeOffset - eyeSize, y: eyeOffset },
-            { x: eyeOffset - eyeSize, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
-        ],
-        '0,-1': [
-            { x: eyeOffset, y: eyeOffset - eyeSize },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: eyeOffset - eyeSize }
-        ],
-        '0,1': [
-            { x: eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: GAME_CONFIG.GRID_SIZE - eyeOffset }
-        ]
-    };
-    
-    const key = `${gameState.direction.x},${gameState.direction.y}`;
-    const positions = eyePositions[key] || [];
-    
-    positions.forEach(pos => {
-        ctx.fillRect(
-            head.x * GAME_CONFIG.GRID_SIZE + pos.x,
-            head.y * GAME_CONFIG.GRID_SIZE + pos.y,
-            eyeSize,
-            eyeSize
-        );
-    });
-}
-
-function drawFood() {
-    // Neon efekti için glow
-    ctx.shadowBlur = 10;
+    // Yemi çiz
     ctx.shadowColor = '#ff0';
-    
-    // Ana yem
     ctx.fillStyle = '#ff0';
     ctx.fillRect(
         gameState.food.x * GAME_CONFIG.GRID_SIZE,
@@ -590,269 +153,80 @@ function drawFood() {
         GAME_CONFIG.GRID_SIZE - 1
     );
     
-    // İç kısım için daha parlak renk
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(
-        gameState.food.x * GAME_CONFIG.GRID_SIZE + 2,
-        gameState.food.y * GAME_CONFIG.GRID_SIZE + 2,
-        GAME_CONFIG.GRID_SIZE - 5,
-        GAME_CONFIG.GRID_SIZE - 5
-    );
-    
     ctx.shadowBlur = 0;
+}
+
+// Oyun Bitişi
+function gameOver() {
+    gameState.gameStarted = false;
+    const message = document.getElementById('message');
+    message.textContent = `Oyun Bitti!\nSkor: ${gameState.score}\nTekrar başlamak için SPACE tuşuna basın`;
+    message.style.display = 'block';
 }
 
 // Klavye Kontrolleri
 document.addEventListener('keydown', handleKeyPress);
 
 function handleKeyPress(event) {
-    event.preventDefault();
-    
     if (!gameState.gameStarted && event.code === 'Space') {
         startGame();
         return;
     }
     
-    // Özel yetenek aktivasyonu - F tuşu
-    if (event.code === 'KeyF' && gameState.gameStarted) {
-        useSpecialAbility();
-        return;
-    }
+    if (!gameState.gameStarted) return;
     
     const keyMappings = {
-        ArrowUp: { x: 0, y: -1 },
-        ArrowDown: { x: 0, y: 1 },
-        ArrowLeft: { x: -1, y: 0 },
-        ArrowRight: { x: 1, y: 0 }
+        'ArrowUp': { x: 0, y: -1 },
+        'ArrowDown': { x: 0, y: 1 },
+        'ArrowLeft': { x: -1, y: 0 },
+        'ArrowRight': { x: 1, y: 0 }
     };
     
     const newDirection = keyMappings[event.key];
     if (!newDirection) return;
     
-    // Serbest hareket için çapraz kontrol
-    if (ANIMALS[gameState.currentAnimal].movement === 'free') {
-        gameState.nextDirection = newDirection;
-    } else {
-        // Normal hareket için ters yön kontrolü
-        const currentDirection = gameState.direction;
-        if (newDirection.x === -currentDirection.x || newDirection.y === -currentDirection.y) {
+    // Ters yöne gitmeyi engelle
+    if (newDirection.x === -gameState.direction.x || 
+        newDirection.y === -gameState.direction.y) {
+        return;
+    }
+    
+    gameState.nextDirection = newDirection;
+}
+
+// Dokunmatik Kontroller
+const touchButtons = document.querySelectorAll('.touch-btn');
+touchButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const direction = button.dataset.direction;
+        const directionMap = {
+            'up': { x: 0, y: -1 },
+            'down': { x: 0, y: 1 },
+            'left': { x: -1, y: 0 },
+            'right': { x: 1, y: 0 }
+        };
+        
+        if (!gameState.gameStarted) {
+            startGame();
             return;
         }
+        
+        const newDirection = directionMap[direction];
+        if (!newDirection) return;
+        
+        if (newDirection.x === -gameState.direction.x || 
+            newDirection.y === -gameState.direction.y) {
+            return;
+        }
+        
         gameState.nextDirection = newDirection;
-    }
-}
+    });
+});
 
-// Oyunu Başlat
-function startGame() {
-    if (gameState.gameLoop) return;
-    
-    initializeGame();
-    changeAnimal();
-    gameState.gameStarted = true;
-    gameState.lastRenderTime = 0;
-    
-    createFood();
-    createObstacles();
-    requestAnimationFrame(gameStep);
-    
-    document.getElementById('message').style.display = 'none';
-}
-
-// İlk çizimi yap ve başlangıç mesajını göster
-draw();
+// Başlangıç mesajını göster
 const message = document.getElementById('message');
-message.textContent = 'Başlamak için SPACE tuşuna basın';
-message.style.display = 'block'; 
+message.textContent = 'Başlamak için SPACE tuşuna basın\nveya ekrana dokunun';
+message.style.display = 'block';
 
-function shadeColor(color, percent) {
-    let R = parseInt(color.substring(1,3), 16);
-    let G = parseInt(color.substring(3,5), 16);
-    let B = parseInt(color.substring(5,7), 16);
-
-    R = parseInt(R * (100 + percent) / 100);
-    G = parseInt(G * (100 + percent) / 100);
-    B = parseInt(B * (100 + percent) / 100);
-
-    R = (R < 255) ? R : 255;  
-    G = (G < 255) ? G : 255;  
-    B = (B < 255) ? B : 255;  
-
-    const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
-    const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
-    const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
-
-    return "#"+RR+GG+BB;
-} 
-
-// Hayvan Değişimi
-function changeAnimal() {
-    const animalOrder = ['SNAKE', 'FROG', 'RABBIT', 'TIGER', 'EAGLE', 'CROCODILE', 'WOLF', 'DRAGON'];
-    const newAnimalIndex = Math.min(gameState.level - 1, animalOrder.length - 1);
-    const newAnimal = animalOrder[newAnimalIndex];
-    
-    gameState.currentAnimal = newAnimal;
-    gameState.gameSpeed = ANIMALS[newAnimal].speed;
-    gameState.lives = newAnimal === 'WOLF' ? 3 : 1;
-    
-    if (gameState.specialAbilityTimer) {
-        clearTimeout(gameState.specialAbilityTimer);
-    }
-    gameState.specialAbilityActive = false;
-    
-    updateAnimalUI();
-}
-
-// UI Güncelleme
-function updateAnimalUI() {
-    const animal = ANIMALS[gameState.currentAnimal];
-    const animalElement = document.getElementById('animal');
-    if (animalElement) {
-        animalElement.textContent = `${animal.name} - ${gameState.lives > 1 ? 'Can: ' + gameState.lives : ''}`;
-        animalElement.style.color = animal.color;
-    }
-}
-
-// Hareket Güncelleme
-function updateMovement() {
-    const animal = ANIMALS[gameState.currentAnimal];
-    
-    switch(animal.movement) {
-        case 'hop':
-            // Kurbağa hareketi: Her 2 karede bir hareket
-            if (gameState.lastRenderTime % 2 === 0) {
-                return;
-            }
-            break;
-            
-        case 'zigzag':
-            // Kertenkele hareketi: Rastgele zikzak
-            if (Math.random() < 0.3) {
-                const randomDir = Math.random() < 0.5 ? -1 : 1;
-                if (gameState.direction.x !== 0) {
-                    gameState.nextDirection = { x: gameState.direction.x, y: randomDir };
-                } else {
-                    gameState.nextDirection = { x: randomDir, y: gameState.direction.y };
-                }
-            }
-            break;
-            
-        case 'accelerate':
-            // Tavşan hareketi: Sürekli hızlanma
-            gameState.gameSpeed = Math.max(
-                GAME_CONFIG.MIN_SPEED,
-                ANIMALS[gameState.currentAnimal].speed * (0.95 ** gameState.score)
-            );
-            break;
-            
-        case 'free':
-            // Kartal/Ejderha hareketi: Serbest uçuş
-            // Bu modda çapraz hareket mümkün
-            break;
-            
-        case 'heavy':
-            // Timsah hareketi: Ağır ama güçlü
-            gameState.gameSpeed = ANIMALS[gameState.currentAnimal].speed * 1.5;
-            break;
-    }
-}
-
-// Özel Yetenek Kullanımı
-function useSpecialAbility() {
-    if (gameState.specialAbilityActive) return;
-    
-    const animal = ANIMALS[gameState.currentAnimal];
-    if (!animal.specialAbility) return;
-    
-    gameState.specialAbilityActive = true;
-    
-    switch(animal.specialAbility) {
-        case 'turbo':
-            // Tavşan turbo modu
-            const originalSpeed = gameState.gameSpeed;
-            gameState.gameSpeed *= 0.5;
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.gameSpeed = originalSpeed;
-                gameState.specialAbilityActive = false;
-            }, 3000);
-            break;
-            
-        case 'claw':
-            // Kaplan pençe saldırısı
-            removeNearbyObstacles();
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.specialAbilityActive = false;
-            }, 1000);
-            break;
-            
-        case 'fireball':
-            // Ejderha ateş topu
-            shootFireball();
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.specialAbilityActive = false;
-            }, 2000);
-            break;
-    }
-}
-
-// Engel Kaldırma (Kaplan için)
-function removeNearbyObstacles() {
-    const head = gameState.snake[0];
-    const range = 2;
-    
-    gameState.obstacles = gameState.obstacles.filter(obs => {
-        const distance = Math.abs(obs.x - head.x) + Math.abs(obs.y - head.y);
-        return distance > range;
-    });
-}
-
-// Ateş Topu (Ejderha için)
-function shootFireball() {
-    const head = gameState.snake[0];
-    const direction = gameState.direction;
-    
-    let fireball = { ...head };
-    const interval = setInterval(() => {
-        fireball.x += direction.x * 2;
-        fireball.y += direction.y * 2;
-        
-        // Engelleri yok et
-        gameState.obstacles = gameState.obstacles.filter(obs => 
-            obs.x !== fireball.x || obs.y !== fireball.y
-        );
-        
-        // Ekran dışına çıktıysa durdur
-        if (fireball.x < 0 || fireball.x >= GAME_CONFIG.GRID_COUNT ||
-            fireball.y < 0 || fireball.y >= GAME_CONFIG.GRID_COUNT) {
-            clearInterval(interval);
-        }
-    }, 100);
-} 
-
-// Renk değiştirme işleyicisi
-function initializeColorPicker() {
-    const buttons = document.querySelectorAll('.color-btn');
-    buttons.forEach(button => {
-        button.addEventListener('click', () => {
-            const color = button.dataset.color;
-            ANIMALS[gameState.currentAnimal].color = color;
-            
-            // Aktif butonu güncelle
-            buttons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // UI'ı güncelle
-            updateAnimalUI();
-        });
-        
-        // İlk rengi aktif olarak işaretle
-        if (button.dataset.color === ANIMALS[gameState.currentAnimal].color) {
-            button.classList.add('active');
-        }
-    });
-}
-
-// Oyunu başlatmadan önce renk seçiciyi başlat
-initializeColorPicker(); 
-
-// Oyunu başlatmadan önce kontrolleri başlat
-initializeTouchControls(); 
+// İlk çizimi yap
+draw(); 
