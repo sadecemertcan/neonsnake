@@ -184,7 +184,8 @@
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 1;
+            z-index: -1;
+            pointer-events: none;
         }
 
         /* Responsive tasarım */
@@ -195,17 +196,13 @@
             }
 
             .controls-info {
-                display: none; /* Mobilde kontrol bilgilerini gizle */
+                display: none;
             }
 
             canvas#gameCanvas {
                 width: 100%;
                 height: auto;
                 max-width: 400px;
-            }
-
-            .mobile-controls {
-                display: block;
             }
 
             .info-container {
@@ -219,6 +216,11 @@
                 left: 0;
                 right: 0;
                 z-index: 2;
+            }
+
+            .touch-area {
+                z-index: 1;
+                pointer-events: auto;
             }
         }
     </style>

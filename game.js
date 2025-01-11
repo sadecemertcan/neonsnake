@@ -38,11 +38,14 @@ touchArea.addEventListener('touchstart', handleTouchStart);
 touchArea.addEventListener('touchend', handleTouchEnd);
 
 function handleTouchStart(event) {
+    if (!isMobile()) return; // Sadece mobilde çalışsın
     touchStartX = event.touches[0].clientX;
     touchStartY = event.touches[0].clientY;
 }
 
 function handleTouchEnd(event) {
+    if (!isMobile()) return; // Sadece mobilde çalışsın
+    
     const touchEndX = event.changedTouches[0].clientX;
     const touchEndY = event.changedTouches[0].clientY;
     
@@ -51,7 +54,7 @@ function handleTouchEnd(event) {
     
     // Çift dokunma kontrolü (oyunu başlatmak için)
     const now = Date.now();
-    if (now - lastTouchTime < 300) { // 300ms içinde iki dokunma
+    if (now - lastTouchTime < 300) {
         if (!isGameRunning || gameOver()) {
             startGame();
         }
@@ -60,10 +63,10 @@ function handleTouchEnd(event) {
     }
     lastTouchTime = now;
 
+    if (!isGameRunning || isPaused) return;
+
     // Minimum kaydırma mesafesi
     const minSwipeDistance = 30;
-
-    if (!isGameRunning || isPaused) return;
 
     // Yatay hareket daha belirginse
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
@@ -151,25 +154,25 @@ function handleKeyPress(event) {
     // Yön tuşları kontrolü
     switch (key) {
         case 'arrowleft':
-            if (dx !== 1 && lastDirection.dx !== 1) { // Sağa gitmiyorsa sola dönebilir
+            if (dx !== 1) { // Sağa gitmiyorsa sola dönebilir
                 dx = -1;
                 dy = 0;
             }
             break;
         case 'arrowup':
-            if (dy !== 1 && lastDirection.dy !== 1) { // Aşağı gitmiyorsa yukarı dönebilir
+            if (dy !== 1) { // Aşağı gitmiyorsa yukarı dönebilir
                 dx = 0;
                 dy = -1;
             }
             break;
         case 'arrowright':
-            if (dx !== -1 && lastDirection.dx !== -1) { // Sola gitmiyorsa sağa dönebilir
+            if (dx !== -1) { // Sola gitmiyorsa sağa dönebilir
                 dx = 1;
                 dy = 0;
             }
             break;
         case 'arrowdown':
-            if (dy !== -1 && lastDirection.dy !== -1) { // Yukarı gitmiyorsa aşağı dönebilir
+            if (dy !== -1) { // Yukarı gitmiyorsa aşağı dönebilir
                 dx = 0;
                 dy = 1;
             }
