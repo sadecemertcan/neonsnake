@@ -181,32 +181,106 @@ languageSwitch.addEventListener('click', () => {
     updateMessages();
 });
 
+// Dokunma kontrolü için değişkenler
+let touchStartX = 0;
+let touchStartY = 0;
+let lastTouchTime = 0;
+let touchTimeout = null;
+let isSwiping = false;
+
 // Dokunma olaylarını engelle
 document.addEventListener('touchmove', function(e) {
-    e.preventDefault();
+    if (!e.target.classList.contains('color-btn') && !e.target.id === 'language-switch') {
+        e.preventDefault();
+    }
 }, { passive: false });
 
 document.addEventListener('touchstart', function(e) {
-    if (!gameState.gameStarted) {
-        startGame();
-        return;
+    if (!e.target.classList.contains('color-btn') && !e.target.id === 'language-switch') {
+        e.preventDefault();
     }
 }, { passive: false });
 
-document.addEventListener('touchend', function(e) {
-    if (!gameState.gameStarted) {
-        startGame();
-        return;
-    }
-}, { passive: false });
+// Dokunma olayları
+const gameArea = document.querySelector('#gameCanvas');
+gameArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+gameArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+gameArea.addEventListener('touchend', handleTouchEnd, { passive: false });
 
-// Canvas'a özel dokunma olayı
-canvas.addEventListener('touchstart', function(e) {
-    if (!gameState.gameStarted) {
-        startGame();
-        return;
+function handleTouchStart(event) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    isSwiping = false;
+    
+    // Uzun dokunma kontrolü
+    touchTimeout = setTimeout(() => {
+        if (!isSwiping) {
+            useSpecialAbility();
+        }
+    }, 500);
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    if (!touchStartX || !touchStartY) return;
+
+    const touch = event.touches[0];
+    const touchEndX = touch.clientX;
+    const touchEndY = touch.clientY;
+
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Minimum kaydırma mesafesi (daha hassas)
+    const minSwipeDistance = 10;
+    if (Math.abs(deltaX) < minSwipeDistance && Math.abs(deltaY) < minSwipeDistance) return;
+
+    isSwiping = true;
+    clearTimeout(touchTimeout);
+
+    // Yön belirleme - sadece en büyük harekete göre
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Yatay hareket
+        if (deltaX > 0 && gameState.direction.x !== -1) {
+            gameState.nextDirection = { x: 1, y: 0 };
+        } else if (deltaX < 0 && gameState.direction.x !== 1) {
+            gameState.nextDirection = { x: -1, y: 0 };
+        }
+    } else {
+        // Dikey hareket
+        if (deltaY > 0 && gameState.direction.y !== -1) {
+            gameState.nextDirection = { x: 0, y: 1 };
+        } else if (deltaY < 0 && gameState.direction.y !== 1) {
+            gameState.nextDirection = { x: 0, y: -1 };
+        }
     }
-}, { passive: false });
+
+    // Yeni başlangıç noktası
+    touchStartX = touchEndX;
+    touchStartY = touchEndY;
+}
+
+function handleTouchEnd(event) {
+    event.preventDefault();
+    clearTimeout(touchTimeout);
+
+    if (!isSwiping) {
+        const now = Date.now();
+        if (now - lastTouchTime < 300) {
+            // Çift dokunma - özel yetenek
+            useSpecialAbility();
+        } else if (!gameState.gameStarted) {
+            startGame();
+        }
+        lastTouchTime = now;
+    }
+
+    touchStartX = null;
+    touchStartY = null;
+    isSwiping = false;
+}
 
 // Mobil cihaz kontrolü
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -215,87 +289,36 @@ if (isMobile) {
     // Mobil cihazlarda tarayıcı kaydırmasını engelle
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+    document.body.style.height = '100%';
     
     // Mobil kontrolleri göster, masaüstü kontrollerini gizle
     document.querySelectorAll('.desktop-controls').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.mobile-controls').forEach(el => el.style.display = 'block');
+
+    // Mobil cihazlarda titreşim desteği
+    function vibrateDevice() {
+        if ('vibrate' in navigator) {
+            navigator.vibrate(50);
+        }
+    }
+
+    // Yem yeme ve çarpışma durumlarında titreşim
+    const originalHandleFoodCollision = handleFoodCollision;
+    handleFoodCollision = function() {
+        vibrateDevice();
+        originalHandleFoodCollision.call(this);
+    };
+
+    const originalGameOver = gameOver;
+    gameOver = function() {
+        vibrateDevice();
+        originalGameOver.call(this);
+    };
 } else {
     // Masaüstünde mobil kontrolleri gizle
     document.querySelectorAll('.mobile-controls').forEach(el => el.style.display = 'none');
-}
-
-// Dokunma kontrolü için değişkenler
-let touchStartX = 0;
-let touchStartY = 0;
-let lastTouchTime = 0;
-let touchTimeout = null;
-
-// Dokunma olayları
-document.querySelector('.swipe-overlay').addEventListener('touchstart', handleTouchStart, { passive: false });
-document.querySelector('.swipe-overlay').addEventListener('touchmove', handleTouchMove, { passive: false });
-document.querySelector('.swipe-overlay').addEventListener('touchend', handleTouchEnd, { passive: false });
-
-function handleTouchStart(event) {
-    event.preventDefault();
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-    
-    // Uzun dokunma kontrolü
-    touchTimeout = setTimeout(() => {
-        useSpecialAbility();
-    }, 500);
-}
-
-function handleTouchMove(event) {
-    event.preventDefault();
-    if (!touchStartX || !touchStartY) return;
-
-    clearTimeout(touchTimeout);
-    
-    const touchEndX = event.touches[0].clientX;
-    const touchEndY = event.touches[0].clientY;
-
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // Minimum kaydırma mesafesi (daha hassas)
-    if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20) return;
-
-    // Yön belirleme
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Yatay hareket
-        if (deltaX > 0) {
-            gameState.nextDirection = { x: 1, y: 0 };
-        } else {
-            gameState.nextDirection = { x: -1, y: 0 };
-        }
-    } else {
-        // Dikey hareket
-        if (deltaY > 0) {
-            gameState.nextDirection = { x: 0, y: 1 };
-        } else {
-            gameState.nextDirection = { x: 0, y: -1 };
-        }
-    }
-
-    touchStartX = null;
-    touchStartY = null;
-}
-
-function handleTouchEnd(event) {
-    event.preventDefault();
-    clearTimeout(touchTimeout);
-
-    const now = Date.now();
-    if (now - lastTouchTime < 300) {
-        // Çift dokunma - özel yetenek
-        useSpecialAbility();
-    }
-    lastTouchTime = now;
-
-    if (!gameState.gameStarted) {
-        startGame();
-    }
 }
 
 // Oyun Başlatma ve Sıfırlama
@@ -469,12 +492,6 @@ function updateGame() {
 
 // Yem Yeme İşlemi
 function handleFoodCollision() {
-    const foodPos = {
-        x: gameState.food.x * GAME_CONFIG.GRID_SIZE,
-        y: gameState.food.y * GAME_CONFIG.GRID_SIZE
-    };
-    createExplosion(foodPos.x, foodPos.y);
-    
     gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
     updateUI();
     
@@ -487,7 +504,6 @@ function handleFoodCollision() {
     
     if (Math.random() < GAME_CONFIG.POWER_UP_CHANCE) {
         activatePowerUp();
-        gameState.powerUpCount++;
     }
 }
 
@@ -541,17 +557,11 @@ function gameOver() {
     cancelAnimationFrame(gameState.gameLoop);
     gameState.gameLoop = null;
     
-    if (navigator.vibrate) {
-        navigator.vibrate(500); // Mobil cihazlarda titreşim
-    }
-    
     playSound(gameOverSound);
     
     const message = document.getElementById('message');
     message.textContent = `${TRANSLATIONS[currentLang].gameOver}\n${TRANSLATIONS[currentLang].finalScore}: ${gameState.score}\n${TRANSLATIONS[currentLang].finalLevel}: ${gameState.level}`;
     message.style.display = 'block';
-    
-    checkHighScore(gameState.score);
 }
 
 // Çizim İşlemleri
@@ -734,6 +744,7 @@ function startGame() {
     if (gameState.gameLoop) return;
     
     initializeGame();
+    changeAnimal();
     gameState.gameStarted = true;
     gameState.lastRenderTime = 0;
     
@@ -745,6 +756,7 @@ function startGame() {
 }
 
 // İlk çizimi yap ve başlangıç mesajını göster
+initializeGame();
 draw();
 const message = document.getElementById('message');
 message.textContent = TRANSLATIONS[currentLang].tapToStart;
@@ -916,7 +928,25 @@ function shootFireball() {
 
 // Renk değiştirme işleyicisi
 function initializeColorPicker() {
-    // Bu fonksiyonu boş bırak veya tamamen kaldır
+    const buttons = document.querySelectorAll('.color-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            const color = button.dataset.color;
+            ANIMALS[gameState.currentAnimal].color = color;
+            
+            // Aktif butonu güncelle
+            buttons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // UI'ı güncelle
+            updateAnimalUI();
+        });
+        
+        // İlk rengi aktif olarak işaretle
+        if (button.dataset.color === ANIMALS[gameState.currentAnimal].color) {
+            button.classList.add('active');
+        }
+    });
 }
 
 // Oyunu başlatmadan önce renk seçiciyi başlat
@@ -933,293 +963,3 @@ function updateMessages() {
     // Kontrol metinlerini güncelle
     document.querySelector('#controls p:first-child').textContent = TRANSLATIONS[currentLang].controls;
 } 
-
-// Yeni özellikler için sabitler
-const ACHIEVEMENTS = {
-    SCORE_100: { name: '100 Puan', description: '100 puan topla', unlocked: false },
-    LEVEL_5: { name: 'Seviye 5', description: '5. seviyeye ulaş', unlocked: false },
-    POWER_UP_10: { name: 'Güç Ustası', description: '10 güç-up topla', unlocked: false },
-    SPEED_DEMON: { name: 'Hız Şeytanı', description: 'Maksimum hıza ulaş', unlocked: false }
-};
-
-// Oyun modları
-const GAME_MODES = {
-    classic: {
-        name: 'Klasik',
-        init: () => {
-            gameState.timeLimit = null;
-            gameState.maze = null;
-        }
-    },
-    time: {
-        name: 'Zaman Yarışı',
-        init: () => {
-            gameState.timeLimit = 60;
-            gameState.maze = null;
-            startTimer();
-        }
-    },
-    maze: {
-        name: 'Labirent',
-        init: () => {
-            gameState.timeLimit = null;
-            gameState.maze = generateMaze();
-        }
-    }
-};
-
-// Yüksek skorlar
-let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
-
-// Oyun durumuna yeni özellikler ekle
-gameState.powerUpCount = 0;
-gameState.currentMode = 'classic';
-gameState.timeLimit = null;
-gameState.maze = null;
-gameState.trail = [];
-
-// Iz efekti için fonksiyon
-function addTrailEffect(x, y) {
-    const trail = document.createElement('div');
-    trail.className = 'trail';
-    trail.style.left = x + 'px';
-    trail.style.top = y + 'px';
-    trail.style.width = '5px';
-    trail.style.height = '5px';
-    trail.style.background = `hsl(${hue}, 100%, 50%)`;
-    document.body.appendChild(trail);
-    
-    setTimeout(() => {
-        trail.style.opacity = '0';
-        setTimeout(() => trail.remove(), 300);
-    }, 100);
-}
-
-// Patlama efekti
-function createExplosion(x, y) {
-    const explosion = document.createElement('div');
-    explosion.className = 'explosion';
-    explosion.style.left = x + 'px';
-    explosion.style.top = y + 'px';
-    document.body.appendChild(explosion);
-    
-    explosion.style.animation = 'explode 0.5s ease-out';
-    setTimeout(() => explosion.remove(), 500);
-}
-
-// Güç-up efektleri
-function createPowerUpEffect(type) {
-    const effect = document.createElement('div');
-    effect.className = 'power-up-effect';
-    
-    switch(type) {
-        case 'SPEED':
-            effect.style.background = 'linear-gradient(transparent, #ff0)';
-            break;
-        case 'GHOST':
-            effect.style.background = 'radial-gradient(circle, #fff, transparent)';
-            break;
-        // ... diğer efektler
-    }
-    
-    document.body.appendChild(effect);
-    setTimeout(() => effect.remove(), 1000);
-}
-
-// Başarım kontrolü
-function checkAchievements() {
-    if (gameState.score >= 100 && !ACHIEVEMENTS.SCORE_100.unlocked) {
-        unlockAchievement('SCORE_100');
-    }
-    if (gameState.level >= 5 && !ACHIEVEMENTS.LEVEL_5.unlocked) {
-        unlockAchievement('LEVEL_5');
-    }
-    if (gameState.powerUpCount >= 10 && !ACHIEVEMENTS.POWER_UP_10.unlocked) {
-        unlockAchievement('POWER_UP_10');
-    }
-    if (gameState.gameSpeed <= GAME_CONFIG.MIN_SPEED && !ACHIEVEMENTS.SPEED_DEMON.unlocked) {
-        unlockAchievement('SPEED_DEMON');
-    }
-}
-
-// Başarım açma
-function unlockAchievement(id) {
-    ACHIEVEMENTS[id].unlocked = true;
-    const achievementSound = document.getElementById('achievementSound');
-    playSound(achievementSound);
-    
-    // Başarım bildirimi göster
-    const notification = document.createElement('div');
-    notification.textContent = `Başarım Açıldı: ${ACHIEVEMENTS[id].name}`;
-    notification.className = 'achievement-notification';
-    document.body.appendChild(notification);
-    
-    setTimeout(() => notification.remove(), 3000);
-    
-    // Başarımları kaydet
-    localStorage.setItem('achievements', JSON.stringify(ACHIEVEMENTS));
-}
-
-// Yüksek skor kontrolü
-function checkHighScore(score) {
-    const lowestScore = highScores.length < 10 ? 0 : highScores[highScores.length - 1].score;
-    
-    if (score > lowestScore) {
-        const name = prompt('Yüksek skor! İsminizi girin:');
-        if (name) {
-            highScores.push({ name, score });
-            highScores.sort((a, b) => b.score - a.score);
-            if (highScores.length > 10) {
-                highScores.pop();
-            }
-            localStorage.setItem('highScores', JSON.stringify(highScores));
-            showHighScores();
-        }
-    }
-}
-
-// Yüksek skorları göster
-function showHighScores() {
-    const scoreList = document.getElementById('score-list');
-    scoreList.innerHTML = '';
-    
-    highScores.forEach((score, index) => {
-        const li = document.createElement('div');
-        li.textContent = `${index + 1}. ${score.name}: ${score.score}`;
-        scoreList.appendChild(li);
-    });
-    
-    document.getElementById('high-scores').style.display = 'block';
-}
-
-// Sosyal medya paylaşımı
-function shareScore(platform) {
-    const text = `Neon Snake'de ${gameState.score} puan yaptım! Seviye: ${gameState.level}`;
-    const url = window.location.href;
-    
-    let shareUrl;
-    switch(platform) {
-        case 'twitter':
-            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-            break;
-        case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-            break;
-        case 'whatsapp':
-            shareUrl = `whatsapp://send?text=${encodeURIComponent(text + ' ' + url)}`;
-            break;
-    }
-    
-    window.open(shareUrl, '_blank');
-}
-
-// Oyun modu değiştirme
-document.getElementById('game-modes').addEventListener('change', (e) => {
-    gameState.currentMode = e.target.value;
-    GAME_MODES[gameState.currentMode].init();
-    startGame();
-});
-
-// Seviye geçiş efekti
-function showLevelTransition() {
-    const transition = document.querySelector('.level-transition');
-    transition.style.display = 'block';
-    
-    setTimeout(() => {
-        transition.style.display = 'none';
-    }, 1000);
-}
-
-// Oyun döngüsünü güncelle
-function gameStep(currentTime) {
-    if (!gameState.gameStarted) return;
-    
-    gameState.gameLoop = requestAnimationFrame(gameStep);
-    
-    const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
-    if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
-    
-    gameState.lastRenderTime = currentTime;
-    
-    // Iz efekti ekle
-    const head = gameState.snake[0];
-    const x = head.x * GAME_CONFIG.GRID_SIZE;
-    const y = head.y * GAME_CONFIG.GRID_SIZE;
-    addTrailEffect(x, y);
-    
-    updateMovement();
-    updateGame();
-    draw();
-    
-    // Başarımları kontrol et
-    checkAchievements();
-}
-
-// Yem yeme işlemini güncelle
-function handleFoodCollision() {
-    const foodPos = {
-        x: gameState.food.x * GAME_CONFIG.GRID_SIZE,
-        y: gameState.food.y * GAME_CONFIG.GRID_SIZE
-    };
-    createExplosion(foodPos.x, foodPos.y);
-    
-    gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
-    updateUI();
-    
-    if (gameState.score >= gameState.level * GAME_CONFIG.LEVEL_UP_SCORE) {
-        levelUp();
-    }
-    
-    createFood();
-    playSound(eatSound);
-    
-    if (Math.random() < GAME_CONFIG.POWER_UP_CHANCE) {
-        activatePowerUp();
-        gameState.powerUpCount++;
-    }
-}
-
-// Güç-up aktivasyonunu güncelle
-function activatePowerUp() {
-    if (gameState.powerUpActive) return;
-    
-    const powerUpTypes = Object.keys(POWER_UPS);
-    gameState.powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
-    gameState.powerUpActive = true;
-    
-    const powerUp = POWER_UPS[gameState.powerUpType];
-    powerUp.apply();
-    
-    createPowerUpEffect(gameState.powerUpType);
-    playSound(document.getElementById('powerUpSound'));
-    
-    updatePowerUpUI(powerUp);
-    
-    gameState.powerUpTimer = setTimeout(() => {
-        powerUp.remove();
-        gameState.powerUpActive = false;
-        gameState.powerUpType = null;
-        document.getElementById('power-up').style.display = 'none';
-    }, powerUp.duration);
-}
-
-// Oyun bitişini güncelle
-function gameOver() {
-    gameState.gameStarted = false;
-    cancelAnimationFrame(gameState.gameLoop);
-    gameState.gameLoop = null;
-    
-    if (navigator.vibrate) {
-        navigator.vibrate(500); // Mobil cihazlarda titreşim
-    }
-    
-    playSound(gameOverSound);
-    
-    const message = document.getElementById('message');
-    message.textContent = `${TRANSLATIONS[currentLang].gameOver}\n${TRANSLATIONS[currentLang].finalScore}: ${gameState.score}\n${TRANSLATIONS[currentLang].finalLevel}: ${gameState.level}`;
-    message.style.display = 'block';
-    
-    checkHighScore(gameState.score);
-}
-
-// ... rest of the code ... 
