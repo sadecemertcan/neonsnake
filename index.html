@@ -10,7 +10,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
             background-color: #0a0a2a;
             font-family: 'Courier New', Courier, monospace;
@@ -69,22 +69,21 @@
             background-color: rgba(0, 0, 0, 0.8);
             image-rendering: pixelated;
             box-shadow: 0 0 20px #00f3ff;
-            border-radius: 10px;
         }
         .info-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             width: 400px;
             margin-bottom: 15px;
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
             border-radius: 5px;
             border: 1px solid #00f3ff;
-            box-shadow: 0 0 10px #00f3ff;
-            text-align: center;
         }
         .score-container {
             display: flex;
-            justify-content: space-around;
-            margin-bottom: 5px;
+            gap: 20px;
         }
         .score, .level {
             color: #fff;
@@ -97,45 +96,75 @@
             font-size: 16px;
             text-shadow: 0 0 10px #00f3ff;
         }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
+            background-color: transparent;
+            color: #fff;
+            border: 2px solid #00f3ff;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00f3ff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        .btn:hover {
+            background-color: #00f3ff;
+            color: #0a0a2a;
+            box-shadow: 0 0 20px #00f3ff;
+        }
         .message {
             position: absolute;
-            top: 50%;
+            top: 45%;
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: rgba(0, 0, 0, 0.9);
             color: #fff;
-            padding: 15px 25px;
+            padding: 10px 20px;
             text-align: center;
             display: none;
-            z-index: 2;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            border: 2px solid #00f3ff;
-            box-shadow: 0 0 15px #00f3ff;
-            text-shadow: 0 0 5px #00f3ff;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            gap: 10px;
-        }
-        .btn {
-            background: none;
-            border: 2px solid #00f3ff;
-            color: #fff;
-            padding: 10px 20px;
-            font-size: 16px;
+            z-index: 1;
             border-radius: 5px;
-            cursor: pointer;
-            text-shadow: 0 0 5px #00f3ff;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid #00f3ff;
             box-shadow: 0 0 10px #00f3ff;
-            transition: all 0.3s ease;
+            text-shadow: 0 0 5px #00f3ff;
         }
-        .btn:hover {
+        .sound-control {
+            position: static;
+            display: inline-flex;
+            align-items: center;
+        }
+        .sound-control button {
+            background-color: transparent;
+            color: #fff;
+            border: 2px solid #00f3ff;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00f3ff;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+        .sound-control button:hover {
             background-color: #00f3ff;
-            color: #000;
+            color: #0a0a2a;
+            box-shadow: 0 0 20px #00f3ff;
+        }
+        .sound-control button.active {
+            background-color: #00f3ff;
+            color: #0a0a2a;
         }
     </style>
 </head>
@@ -152,11 +181,6 @@
         <div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             <div id="message" class="message"></div>
-            <div class="controls">
-                <button id="startBtn" class="btn">Başla</button>
-                <button id="pauseBtn" class="btn">Durdur</button>
-                <button id="soundToggle" class="btn">🔊 Ses</button>
-            </div>
         </div>
         <div class="controls-info">
             <h3>🎮 Kontroller</h3>
@@ -178,9 +202,14 @@
             </div>
             <div class="key-info">
                 <div class="key">Space</div>
-                <span>Başlat/Durdur</span>
+                <span>Başlat/Yeniden</span>
             </div>
         </div>
+    </div>
+    <div class="controls">
+        <button id="startBtn" class="btn">Başla</button>
+        <button id="pauseBtn" class="btn">Durdur</button>
+        <button id="soundToggle" class="btn">🔊 Ses</button>
     </div>
 
     <audio id="eatSound" src="sounds/eat.mp3" preload="auto"></audio>
@@ -188,6 +217,8 @@
     <audio id="levelUpSound" src="sounds/levelup.mp3" preload="auto"></audio>
     <audio id="hitSound" src="sounds/hit.mp3" preload="auto"></audio>
     <audio id="bgMusic" src="sounds/background.mp3" preload="auto" loop></audio>
+    <audio id="portalSound" src="sounds/portal.mp3" preload="auto"></audio>
+    <audio id="powerUpSound" src="sounds/powerup.mp3" preload="auto"></audio>
 
     <script src="sounds.js"></script>
     <script src="game.js"></script>

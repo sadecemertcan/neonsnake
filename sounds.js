@@ -5,6 +5,8 @@ const levelUpSound = document.getElementById('levelUpSound');
 const hitSound = document.getElementById('hitSound');
 const bgMusic = document.getElementById('bgMusic');
 const soundToggle = document.getElementById('soundToggle');
+const portalSound = document.getElementById('portalSound');
+const powerUpSound = document.getElementById('powerUpSound');
 
 // Ses durumu localStorage'dan al
 let isSoundOn = localStorage.getItem('snakeSoundOn') !== 'false';
@@ -18,6 +20,8 @@ eatSound.volume = 0.5;
 gameOverSound.volume = 0.6;
 levelUpSound.volume = 0.6;
 hitSound.volume = 0.5;
+portalSound.volume = 0.4;
+powerUpSound.volume = 0.5;
 
 // Müzik bittiğinde tekrar başlat
 bgMusic.addEventListener('ended', function() {
@@ -89,6 +93,20 @@ const SoundManager = {
         if (isSoundOn) {
             hitSound.currentTime = 0;
             hitSound.play();
+        }
+    },
+    
+    playPortal() {
+        if (isSoundOn) {
+            portalSound.currentTime = 0;
+            portalSound.play();
+        }
+    },
+    
+    playPowerUp() {
+        if (isSoundOn) {
+            powerUpSound.currentTime = 0;
+            powerUpSound.play();
         }
     },
     
