@@ -87,6 +87,28 @@
             box-shadow: 0 0 15px #00f3ff;
             text-shadow: 0 0 5px #00f3ff;
         }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .btn {
+            background: none;
+            border: 2px solid #00f3ff;
+            color: #fff;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00f3ff;
+            box-shadow: 0 0 10px #00f3ff;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #00f3ff;
+            color: #000;
+        }
         .sound-toggle {
             position: absolute;
             top: 10px;
@@ -125,8 +147,12 @@
     <div class="game-container">
         <canvas id="gameCanvas" width="400" height="400"></canvas>
         <div id="message" class="message"></div>
-        <button id="soundToggle" class="sound-toggle">🔊</button>
-        <div class="start-tip">Oyunu başlatmak için ekrana dokun</div>
+        <div class="controls">
+            <button id="startBtn" class="btn">Başla</button>
+            <button id="pauseBtn" class="btn">Durdur</button>
+            <button id="soundToggle" class="btn">🔊 Ses</button>
+        </div>
+        <div class="start-tip">Yönlendirmek için ekrana dokun</div>
     </div>
 
     <audio id="eatSound" src="sounds/eat.mp3" preload="auto"></audio>

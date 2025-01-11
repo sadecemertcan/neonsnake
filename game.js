@@ -22,11 +22,37 @@ let scoreSpan = document.getElementById('score');
 let levelSpan = document.getElementById('level');
 let levelInfo = document.getElementById('levelInfo');
 let soundToggle = document.getElementById('soundToggle');
+let startBtn = document.getElementById('startBtn');
+let pauseBtn = document.getElementById('pauseBtn');
+
+// Buton kontrolleri
+startBtn.addEventListener('click', () => {
+    if (!isGameRunning) {
+        startGame();
+        startBtn.textContent = 'Yeniden Başlat';
+    } else {
+        resetGame();
+    }
+});
+
+pauseBtn.addEventListener('click', () => {
+    if (!isGameRunning) return;
+    
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? 'Devam Et' : 'Durdur';
+    
+    if (isPaused) {
+        if (isSoundOn) bgMusic.pause();
+    } else {
+        if (isSoundOn) bgMusic.play();
+        gameLoop();
+    }
+});
 
 // Ses kontrolü
 soundToggle.addEventListener('click', () => {
     isSoundOn = !isSoundOn;
-    soundToggle.textContent = isSoundOn ? '🔊' : '🔈';
+    soundToggle.textContent = isSoundOn ? '🔊 Ses' : '🔈 Ses';
     if (isSoundOn) {
         if (isGameRunning && !isPaused) bgMusic.play();
     } else {
