@@ -118,7 +118,7 @@ function updateGame() {
     // Yem yeme kontrolü
     if (head.x === gameState.food.x && head.y === gameState.food.y) {
         gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
-        document.getElementById('score').textContent = `Skor: ${gameState.score}`;
+        document.getElementById('score').textContent = `SKOR: ${gameState.score}`;
         createFood();
     } else {
         gameState.snake.pop();
@@ -210,33 +210,18 @@ function handleKeyPress(event) {
 }
 
 // Dokunmatik Kontroller
-const touchButtons = document.querySelectorAll('.touch-btn');
-touchButtons.forEach(button => {
-    button.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const direction = button.dataset.direction;
-        const directionMap = {
-            'up': { x: 0, y: -1 },
-            'down': { x: 0, y: 1 },
-            'left': { x: -1, y: 0 },
-            'right': { x: 1, y: 0 }
-        };
-        
-        changeDirection(directionMap[direction]);
-    });
-});
-
-// Kaydırma Kontrolleri
 let touchStartX = 0;
 let touchStartY = 0;
 const MIN_SWIPE_DISTANCE = 30;
 
-document.addEventListener('touchstart', (e) => {
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
-}, false);
+}, { passive: false });
 
-document.addEventListener('touchmove', (e) => {
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
     if (!touchStartX || !touchStartY) return;
     
     const xDiff = touchStartX - e.touches[0].clientX;
@@ -250,27 +235,24 @@ document.addEventListener('touchmove', (e) => {
         changeDirection(yDiff > 0 ? { x: 0, y: -1 } : { x: 0, y: 1 });
     }
     
-    touchStartX = 0;
-    touchStartY = 0;
-}, false);
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: false });
 
-document.addEventListener('touchend', () => {
-    touchStartX = 0;
-    touchStartY = 0;
-}, false);
-
-// Ekrana dokunma ile başlatma
-canvas.addEventListener('click', () => {
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
     if (!gameState.gameStarted) {
         startGame();
     }
-});
+    touchStartX = 0;
+    touchStartY = 0;
+}, { passive: false });
 
 // Başlangıç mesajını göster
 const message = document.getElementById('message');
 message.textContent = gameState.isMobile ? 
-    'Başlamak için dokun' :
-    'Başlamak için SPACE tuşuna basın';
+    'Başlamak için dokun\nKontrol için parmağını kaydır' :
+    'Başlamak için SPACE tuşuna basın\nKontrol için ok tuşlarını kullan';
 message.style.display = 'block';
 
 // İlk çizimi yap
