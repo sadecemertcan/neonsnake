@@ -1,7 +1,7 @@
 // Oyun Sabitleri
 const GAME_CONFIG = {
     GRID_SIZE: 20,
-    GRID_COUNT: 25,
+    GRID_COUNT: 20,
     INITIAL_SPEED: 120,
     MIN_SPEED: 40,
     SPEED_DECREASE: 8,
@@ -9,6 +9,57 @@ const GAME_CONFIG = {
     POINTS_PER_FOOD: 10,
     LEVEL_UP_SCORE: 50
 };
+
+// RGB renk değişimi için değişkenler
+let borderHue = 0;
+const BORDER_COLOR_SPEED = 2;
+
+// Arkaplan patlamaları için
+const explosions = [];
+const MAX_EXPLOSIONS = 5;
+
+function createExplosion() {
+    if (explosions.length >= MAX_EXPLOSIONS) return;
+    
+    explosions.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: 0,
+        maxSize: 50 + Math.random() * 100,
+        speed: 1 + Math.random() * 2,
+        hue: Math.random() * 360,
+        alpha: 1
+    });
+}
+
+function updateExplosions() {
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const exp = explosions[i];
+        exp.size += exp.speed;
+        exp.alpha -= 0.01;
+        
+        if (exp.size >= exp.maxSize || exp.alpha <= 0) {
+            explosions.splice(i, 1);
+        }
+    }
+    
+    if (Math.random() < 0.05) {
+        createExplosion();
+    }
+}
+
+function drawExplosions() {
+    explosions.forEach(exp => {
+        ctx.beginPath();
+        ctx.arc(exp.x, exp.y, exp.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${exp.hue}, 100%, 50%, ${exp.alpha * 0.2})`;
+        ctx.fill();
+        
+        ctx.strokeStyle = `hsla(${exp.hue}, 100%, 50%, ${exp.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    });
+}
 
 // Hayvan Özellikleri
 const ANIMALS = {
@@ -218,6 +269,7 @@ function gameStep(currentTime) {
     
     // Renk güncelleme
     updateSnakeColor(currentTime);
+    updateExplosions();
     
     const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
     if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
@@ -462,45 +514,42 @@ function drawBackground() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Neon patlamaları çiz
+    drawExplosions();
+    
+    // RGB border rengi güncelle
+    borderHue = (borderHue + BORDER_COLOR_SPEED) % 360;
+    const borderColor = `hsl(${borderHue}, 100%, 50%)`;
+    
+    // Oyun alanı kenarları
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = borderColor;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    
     // Neon grid çizgileri
     const gridSize = 20;
     ctx.strokeStyle = BACKGROUND_COLORS.grid;
     ctx.lineWidth = 1;
     ctx.globalAlpha = BACKGROUND_COLORS.gridOpacity;
-    
-    // Yatay çizgiler
-    for (let y = 0; y <= canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-    }
-    
-    // Dikey çizgiler
-    for (let x = 0; x <= canvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-    }
-    
-    // Neon glow efekti
-    ctx.shadowBlur = 30;
-    ctx.shadowColor = BACKGROUND_COLORS.glow;
-    ctx.globalAlpha = BACKGROUND_COLORS.glowOpacity;
-    ctx.strokeStyle = BACKGROUND_COLORS.glow;
-    ctx.lineWidth = 2;
-    
-    // Çapraz glow çizgileri
-    for (let i = 0; i < canvas.width + canvas.height; i += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(i, 0);
-        ctx.stroke();
-    }
-    
-    // Efektleri sıfırla
     ctx.shadowBlur = 0;
+    
+    // Yatay ve dikey çizgiler
+    for (let i = 0; i <= GAME_CONFIG.GRID_COUNT; i++) {
+        const pos = i * GAME_CONFIG.GRID_SIZE;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, pos);
+        ctx.lineTo(canvas.width, pos);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(pos, 0);
+        ctx.lineTo(pos, canvas.height);
+        ctx.stroke();
+    }
+    
     ctx.globalAlpha = 1;
 }
 
