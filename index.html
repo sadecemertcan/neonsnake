@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neon Snake Adventure</title>
     <style>
         body {
@@ -16,7 +16,6 @@
             font-family: 'Courier New', Courier, monospace;
             color: #fff;
             overflow: hidden;
-            touch-action: none;
         }
         #backgroundCanvas {
             position: fixed;
@@ -28,25 +27,52 @@
             opacity: 0.5;
         }
         .game-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 0 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .controls-info {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 20px #00f3ff;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 5px #00f3ff;
+            width: 200px;
+        }
+        .controls-info h3 {
+            color: #00f3ff;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            text-shadow: 0 0 10px #00f3ff;
+        }
+        .key-info {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+        .key {
+            background-color: rgba(0, 243, 255, 0.1);
+            border: 1px solid #00f3ff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            min-width: 30px;
+            text-align: center;
+            box-shadow: 0 0 5px #00f3ff;
         }
         canvas {
-            width: 100%;
-            height: auto;
             border: 4px solid #00f3ff;
             background-color: rgba(0, 0, 0, 0.8);
             image-rendering: pixelated;
             box-shadow: 0 0 20px #00f3ff;
             border-radius: 10px;
-            touch-action: none;
         }
         .info-container {
-            width: 100%;
-            max-width: 400px;
+            width: 400px;
             margin-bottom: 15px;
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
@@ -106,30 +132,10 @@
             text-shadow: 0 0 5px #00f3ff;
             box-shadow: 0 0 10px #00f3ff;
             transition: all 0.3s ease;
-            -webkit-tap-highlight-color: transparent;
         }
-        .btn:hover, .btn:active {
+        .btn:hover {
             background-color: #00f3ff;
             color: #000;
-        }
-        .controls-info {
-            text-align: center;
-            margin-top: 20px;
-            color: #00f3ff;
-            font-size: 16px;
-            text-shadow: 0 0 5px #00f3ff;
-        }
-        @media (max-width: 480px) {
-            .game-container {
-                padding: 0 5px;
-            }
-            .btn {
-                padding: 8px 15px;
-                font-size: 14px;
-            }
-            .controls-info {
-                font-size: 14px;
-            }
         }
     </style>
 </head>
@@ -143,16 +149,37 @@
         <div class="level-info" id="levelInfo">Hedef: 100</div>
     </div>
     <div class="game-container">
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <div id="message" class="message"></div>
-        <div class="controls">
-            <button id="startBtn" class="btn">Başla</button>
-            <button id="pauseBtn" class="btn">Durdur</button>
-            <button id="soundToggle" class="btn">🔊 Ses</button>
+        <div>
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            <div id="message" class="message"></div>
+            <div class="controls">
+                <button id="startBtn" class="btn">Başla</button>
+                <button id="pauseBtn" class="btn">Durdur</button>
+                <button id="soundToggle" class="btn">🔊 Ses</button>
+            </div>
         </div>
         <div class="controls-info">
-            Yönlendirmek için ekrana dokun<br>
-            Her dokunuş yılanı saat yönünde döndürür
+            <h3>🎮 Kontroller</h3>
+            <div class="key-info">
+                <div class="key">↑</div>
+                <span>Yukarı</span>
+            </div>
+            <div class="key-info">
+                <div class="key">↓</div>
+                <span>Aşağı</span>
+            </div>
+            <div class="key-info">
+                <div class="key">←</div>
+                <span>Sol</span>
+            </div>
+            <div class="key-info">
+                <div class="key">→</div>
+                <span>Sağ</span>
+            </div>
+            <div class="key-info">
+                <div class="key">Space</div>
+                <span>Başlat/Durdur</span>
+            </div>
         </div>
     </div>
 
