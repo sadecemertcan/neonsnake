@@ -10,26 +10,87 @@ const MIN_SPEED = 50;
 const SPEED_DECREASE = 5;
 
 // Oyun durumu
-let snake = [];
-let food = {};
-let direction = { x: 0, y: 0 };
-let nextDirection = { x: 0, y: 0 };
+let snake = [
+    { x: 10, y: 10 },
+    { x: 9, y: 10 },
+    { x: 8, y: 10 }
+];
+let food = { x: 15, y: 15 };
+let direction = { x: 1, y: 0 };
+let nextDirection = { x: 1, y: 0 };
 let score = 0;
 let gameSpeed = INITIAL_SPEED;
 let gameLoop = null;
 let lastRenderTime = 0;
 let gameStarted = false;
 
-// Yılanı başlangıç pozisyonuna getir
-function initializeSnake() {
-    const centerPos = Math.floor(GRID_COUNT / 2);
+// Oyunu çiz
+function draw() {
+    // Arka planı temizle
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Yılanı çiz
+    snake.forEach((segment, index) => {
+        // Gölge efekti
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = index === 0 ? '#0ff' : '#0f0';
+        ctx.fillStyle = index === 0 ? '#0ff' : '#0f0';
+        
+        // Segmenti çiz
+        ctx.beginPath();
+        ctx.rect(
+            segment.x * GRID_SIZE + 1,
+            segment.y * GRID_SIZE + 1,
+            GRID_SIZE - 2,
+            GRID_SIZE - 2
+        );
+        ctx.fill();
+    });
+    
+    // Yemi çiz
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#f00';
+    ctx.fillStyle = '#f00';
+    ctx.beginPath();
+    ctx.rect(
+        food.x * GRID_SIZE + 1,
+        food.y * GRID_SIZE + 1,
+        GRID_SIZE - 2,
+        GRID_SIZE - 2
+    );
+    ctx.fill();
+    
+    // Gölge efektini sıfırla
+    ctx.shadowBlur = 0;
+}
+
+// Oyunu başlat
+function startGame() {
+    if (gameLoop) return;
+    
+    // Oyunu sıfırla
     snake = [
-        { x: centerPos, y: centerPos },
-        { x: centerPos - 1, y: centerPos },
-        { x: centerPos - 2, y: centerPos }
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
     ];
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
+    score = 0;
+    gameSpeed = INITIAL_SPEED;
+    updateScore();
+    
+    // Yeni yem oluştur
+    createFood();
+    
+    // Oyun döngüsünü başlat
+    gameStarted = true;
+    lastRenderTime = 0;
+    requestAnimationFrame(gameStep);
+    
+    // Mesajı gizle
+    document.getElementById('message').style.display = 'none';
 }
 
 // Yeni yem oluştur
@@ -51,27 +112,6 @@ function createFood() {
         
         if (!onSnake) break;
     }
-}
-
-// Oyunu başlat
-function startGame() {
-    if (gameLoop) return;
-    
-    // Oyunu sıfırla
-    score = 0;
-    gameSpeed = INITIAL_SPEED;
-    updateScore();
-    
-    // Yılanı ve yemi yerleştir
-    initializeSnake();
-    createFood();
-    
-    // Oyun döngüsünü başlat
-    gameStarted = true;
-    requestAnimationFrame(gameStep);
-    
-    // Mesajı gizle
-    document.getElementById('message').style.display = 'none';
 }
 
 // Skoru güncelle
@@ -146,45 +186,6 @@ function gameOver() {
     const message = document.getElementById('message');
     message.textContent = `Oyun Bitti! Skor: ${score}`;
     message.style.display = 'block';
-}
-
-// Oyunu çiz
-function draw() {
-    // Arka planı temizle
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Yılanı çiz
-    snake.forEach((segment, index) => {
-        // Gölge efekti
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = index === 0 ? '#0ff' : '#0f0';
-        
-        // Segment rengini ayarla
-        ctx.fillStyle = index === 0 ? '#0ff' : '#0f0';
-        
-        // Segmenti çiz
-        ctx.fillRect(
-            segment.x * GRID_SIZE + 1,
-            segment.y * GRID_SIZE + 1,
-            GRID_SIZE - 2,
-            GRID_SIZE - 2
-        );
-    });
-    
-    // Yemi çiz
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#f00';
-    ctx.fillStyle = '#f00';
-    ctx.fillRect(
-        food.x * GRID_SIZE + 1,
-        food.y * GRID_SIZE + 1,
-        GRID_SIZE - 2,
-        GRID_SIZE - 2
-    );
-    
-    // Gölge efektini sıfırla
-    ctx.shadowBlur = 0;
 }
 
 // Klavye kontrollerini dinle
