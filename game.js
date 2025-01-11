@@ -1,7 +1,7 @@
 // Oyun Sabitleri
 const GAME_CONFIG = {
     GRID_SIZE: 15,
-    GRID_COUNT: window.innerWidth < 768 ? 20 : 30,
+    GRID_COUNT: window.innerWidth < 768 ? 15 : 30,
     INITIAL_SPEED: 200,
     MIN_SPEED: 50,
     SPEED_DECREASE: 5,
@@ -18,7 +18,7 @@ const ctx = canvas.getContext('2d');
 function resizeCanvas() {
     const isMobile = window.innerWidth < 768;
     const size = isMobile ? 
-        Math.min(window.innerWidth - 40, window.innerHeight - 200) : 
+        Math.min(window.innerWidth - 60, window.innerHeight - 250) :
         Math.min(600, window.innerHeight - 100);
     
     canvas.width = size;
