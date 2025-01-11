@@ -205,12 +205,36 @@ function showMessage(text, duration = 1000) {
 }
 
 function startGame() {
+    // Oyunu başlangıç durumuna getir
+    snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+    ];
+    food = { x: 15, y: 15 };
+    obstacles = [];
+    dx = 1;
+    dy = 0;
+    score = 0;
+    currentLevel = 1;
+    gameSpeed = levels[currentLevel].speed;
+    baseSpeed = levels[currentLevel].speed;
+    
+    // Skoru sıfırla
+    document.getElementById('score').textContent = '0';
+    document.getElementById('level').textContent = '1';
+    updateLevelInfo();
+    
+    // Oyun durumunu güncelle
     isGameRunning = true;
     isPaused = false;
-    resetGame();
+    
+    // Mesaj göster ve müziği başlat
     showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Bölüm 1', 1000);
     startBtn.textContent = 'Yeniden Başlat';
     SoundManager.startBgMusic();
+    
+    // Oyun döngüsünü başlat
     lastMoveTime = Date.now();
     requestAnimationFrame(drawGame);
 }
@@ -233,7 +257,7 @@ function togglePause() {
 }
 
 function drawGame() {
-    if (isPaused) return;
+    if (!isGameRunning || isPaused) return;
     
     const now = Date.now();
     if (now - lastMoveTime > gameSpeed) {
@@ -248,13 +272,10 @@ function drawGame() {
     drawSnake();
     checkLevelProgress();
     
-    if (gameOver()) {
-        handleGameOver();
-        return;
-    }
-    
-    if (isGameRunning) {
+    if (!gameOver()) {
         requestAnimationFrame(drawGame);
+    } else {
+        handleGameOver();
     }
 }
 
@@ -417,8 +438,8 @@ function moveSnake() {
         return;
     }
     
-    // Kendine çarpma kontrolü
-    for (let i = 0; i < snake.length; i++) {
+    // Kendine çarpma kontrolü (ilk parça hariç)
+    for (let i = 1; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             SoundManager.playHit();
             handleGameOver();
