@@ -27,6 +27,8 @@ let lastMoveTime = 0;
 let lastDirection = { dx: 1, dy: 0 };
 let touchStartX = 0;
 let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
 
 const levels = {
     1: {
@@ -63,25 +65,18 @@ const pauseBtn = document.getElementById('pauseBtn');
 const messageDiv = document.getElementById('message');
 const levelInfo = document.getElementById('levelInfo');
 
-// Mobil kontrol butonları
-const upButton = document.getElementById('upButton');
-const downButton = document.getElementById('downButton');
-const leftButton = document.getElementById('leftButton');
-const rightButton = document.getElementById('rightButton');
-const centerButton = document.getElementById('centerButton');
-
-startBtn.addEventListener('click', startGame);
-pauseBtn.addEventListener('click', togglePause);
-
 // Dokunmatik kontroller için event listener'lar
-canvas.addEventListener('touchstart', handleTouchStart);
-canvas.addEventListener('touchmove', handleTouchMove);
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
 function handleTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
+    touchEndX = touchStartX;
+    touchEndY = touchStartY;
 
     // Oyun başlamamışsa veya bitmişse, dokunuşla başlat
     if (!isGameRunning || gameOver()) {
@@ -95,50 +90,46 @@ function handleTouchMove(e) {
     
     e.preventDefault();
     const touch = e.touches[0];
-    const touchEndX = touch.clientX;
-    const touchEndY = touch.clientY;
+    touchEndX = touch.clientX;
+    touchEndY = touch.clientY;
 
     const deltaX = touchEndX - touchStartX;
     const deltaY = touchEndY - touchStartY;
 
     // Minimum kaydırma mesafesi
-    const minSwipeDistance = 30;
+    const minSwipeDistance = 20;
 
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
         // Yatay hareket
-        if (Math.abs(deltaX) > minSwipeDistance) {
-            if (deltaX > 0 && dx !== -1 && lastDirection.dx !== -1) {
-                // Sağa
-                dx = 1;
-                dy = 0;
-            } else if (deltaX < 0 && dx !== 1 && lastDirection.dx !== 1) {
-                // Sola
-                dx = -1;
-                dy = 0;
-            }
+        if (deltaX > 0 && dx !== -1) {
+            // Sağa
+            dx = 1;
+            dy = 0;
+        } else if (deltaX < 0 && dx !== 1) {
+            // Sola
+            dx = -1;
+            dy = 0;
         }
-    } else {
+    } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
         // Dikey hareket
-        if (Math.abs(deltaY) > minSwipeDistance) {
-            if (deltaY > 0 && dy !== -1 && lastDirection.dy !== -1) {
-                // Aşağı
-                dx = 0;
-                dy = 1;
-            } else if (deltaY < 0 && dy !== 1 && lastDirection.dy !== 1) {
-                // Yukarı
-                dx = 0;
-                dy = -1;
-            }
+        if (deltaY > 0 && dy !== -1) {
+            // Aşağı
+            dx = 0;
+            dy = 1;
+        } else if (deltaY < 0 && dy !== 1) {
+            // Yukarı
+            dx = 0;
+            dy = -1;
         }
     }
+}
 
-    // Yeni başlangıç noktası
+function handleTouchEnd(e) {
+    e.preventDefault();
+    // Yeni başlangıç noktasını son dokunulan nokta yap
     touchStartX = touchEndX;
     touchStartY = touchEndY;
 }
-
-// Klavye kontrollerini kaldır
-document.removeEventListener('keydown', handleKeyPress);
 
 function updateLevelInfo() {
     const level = levels[currentLevel];

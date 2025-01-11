@@ -166,41 +166,7 @@
             background-color: #00f3ff;
             color: #0a0a2a;
         }
-        /* Mobil Kontroller */
-        .mobile-controls {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 100;
-        }
-
-        .direction-pad {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(3, 60px);
-            gap: 5px;
-        }
-
-        .direction-button {
-            background-color: rgba(0, 243, 255, 0.2);
-            border: 2px solid #00f3ff;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            user-select: none;
-            touch-action: manipulation;
-        }
-
-        .direction-button:active {
-            background-color: rgba(0, 243, 255, 0.5);
-        }
-
+        
         /* Mobil Responsive Tasarım */
         @media (max-width: 768px) {
             body {
@@ -226,10 +192,7 @@
                 height: 100vw;
                 max-width: 400px;
                 max-height: 400px;
-            }
-
-            .controls-info {
-                display: none;
+                touch-action: none;
             }
 
             .info-container {
@@ -245,38 +208,6 @@
                 display: flex;
                 justify-content: center;
                 gap: 10px;
-            }
-
-            .mobile-controls {
-                display: block;
-                position: relative;
-                bottom: 0;
-                left: 0;
-                transform: none;
-                width: 100%;
-                max-width: 400px;
-                margin-top: 20px;
-                padding-bottom: 20px;
-            }
-
-            .direction-pad {
-                grid-template-columns: repeat(3, 1fr);
-                grid-template-rows: repeat(3, 1fr);
-                gap: 10px;
-                max-width: 300px;
-                margin: 0 auto;
-            }
-
-            .direction-button {
-                width: 100%;
-                height: 60px;
-                font-size: 28px;
-                border-width: 3px;
-            }
-
-            .direction-button:active {
-                background-color: rgba(0, 243, 255, 0.7);
-                transform: scale(0.95);
             }
         }
 
