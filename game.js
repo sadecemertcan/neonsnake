@@ -24,25 +24,31 @@ const particles = [];
 const MAX_PARTICLES = 50;
 
 // RGB Partiküller için ayarlar
-const MAX_RGB_PARTICLES = 150; // Partikül sayısını artırdık
-const RGB_COLORS = [
-    '#ff0000', // Kırmızı
-    '#00ff00', // Yeşil
-    '#0000ff', // Mavi
-    '#ff00ff', // Mor
-    '#00ffff', // Cyan
-    '#ffff00'  // Sarı
-];
+const MAX_RGB_PARTICLES = 100; // Partikül sayısını artırdık
+const rgbParticles = [];
+
+// Arkaplan efektleri için sabitler
+const EFFECTS_CONFIG = {
+    MAX_EXPLOSIONS: 15, // Patlama sayısını artırdık
+    MAX_PARTICLES: 100, // Parçacık sayısını artırdık
+    MAX_RGB_PARTICLES: 150, // RGB parçacık sayısını artırdık
+    EXPLOSION_CHANCE: 0.15, // Patlama oluşma şansını artırdık
+    PARTICLE_SPEED: 3, // Parçacık hızını artırdık
+    RHYTHM_INTERVAL: 300, // Ritim aralığını düşürdük
+    BASE_EFFECT_MULTIPLIER: 1.2 // Temel efekt çarpanı
+};
 
 function createExplosion() {
-    if (explosions.length >= MAX_EXPLOSIONS) return;
+    if (explosions.length >= EFFECTS_CONFIG.MAX_EXPLOSIONS) return;
+    
+    const effectMultiplier = 1 + (gameState.level * 0.1); // Her seviye için efektleri artır
     
     explosions.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: 0,
-        maxSize: 50 + Math.random() * 100,
-        speed: 1 + Math.random() * 2,
+        maxSize: (100 + Math.random() * 150) * effectMultiplier, // Patlama boyutunu artırdık
+        speed: (2 + Math.random() * 3) * effectMultiplier, // Patlama hızını artırdık
         hue: Math.random() * 360,
         alpha: 1
     });
@@ -52,14 +58,14 @@ function updateExplosions() {
     for (let i = explosions.length - 1; i >= 0; i--) {
         const exp = explosions[i];
         exp.size += exp.speed;
-        exp.alpha -= 0.01;
+        exp.alpha -= 0.008; // Yavaşça sönme
         
         if (exp.size >= exp.maxSize || exp.alpha <= 0) {
             explosions.splice(i, 1);
         }
     }
     
-    if (Math.random() < 0.05) {
+    if (Math.random() < EFFECTS_CONFIG.EXPLOSION_CHANCE) {
         createExplosion();
     }
 }
@@ -78,41 +84,44 @@ function drawExplosions() {
 }
 
 function createParticle() {
-    if (particles.length >= MAX_PARTICLES) return;
+    if (particles.length >= EFFECTS_CONFIG.MAX_PARTICLES) return;
     
-    const edge = Math.floor(Math.random() * 4); // 0: üst, 1: sağ, 2: alt, 3: sol
+    const effectMultiplier = 1 + (gameState.level * 0.1);
+    const speed = EFFECTS_CONFIG.PARTICLE_SPEED * effectMultiplier;
+    
+    const edge = Math.floor(Math.random() * 4);
     let x, y, dx, dy;
     
     switch(edge) {
         case 0: // üst
             x = Math.random() * canvas.width;
             y = -10;
-            dx = (Math.random() - 0.5) * 4;
-            dy = Math.random() * 2 + 1;
+            dx = (Math.random() - 0.5) * speed * 2;
+            dy = Math.random() * speed + 1;
             break;
         case 1: // sağ
             x = canvas.width + 10;
             y = Math.random() * canvas.height;
-            dx = -(Math.random() * 2 + 1);
-            dy = (Math.random() - 0.5) * 4;
+            dx = -(Math.random() * speed + 1);
+            dy = (Math.random() - 0.5) * speed * 2;
             break;
         case 2: // alt
             x = Math.random() * canvas.width;
             y = canvas.height + 10;
-            dx = (Math.random() - 0.5) * 4;
-            dy = -(Math.random() * 2 + 1);
+            dx = (Math.random() - 0.5) * speed * 2;
+            dy = -(Math.random() * speed + 1);
             break;
         case 3: // sol
             x = -10;
             y = Math.random() * canvas.height;
-            dx = Math.random() * 2 + 1;
-            dy = (Math.random() - 0.5) * 4;
+            dx = Math.random() * speed + 1;
+            dy = (Math.random() - 0.5) * speed * 2;
             break;
     }
     
     particles.push({
         x, y, dx, dy,
-        size: Math.random() * 3 + 1,
+        size: Math.random() * 4 + 2, // Parçacık boyutunu artırdık
         hue: Math.random() * 360,
         life: 1
     });
@@ -123,7 +132,7 @@ function updateParticles() {
         const p = particles[i];
         p.x += p.dx;
         p.y += p.dy;
-        p.life -= 0.01;
+        p.life -= 0.008; // Yavaşça sönme
         
         if (p.life <= 0 || p.x < -20 || p.x > canvas.width + 20 || 
             p.y < -20 || p.y > canvas.height + 20) {
@@ -131,7 +140,7 @@ function updateParticles() {
         }
     }
     
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.3) { // Parçacık oluşturma şansını artırdık
         createParticle();
     }
 }
@@ -149,12 +158,13 @@ function drawParticles() {
 }
 
 function createRGBParticle() {
-    if (rgbParticles.length >= MAX_RGB_PARTICLES) return;
+    if (rgbParticles.length >= EFFECTS_CONFIG.MAX_RGB_PARTICLES) return;
     
+    const effectMultiplier = 1 + (gameState.level * 0.1);
     const x = Math.random() * canvas.width;
     const y = Math.random() * canvas.height;
-    const size = Math.random() * 4 + 2;
-    const speed = Math.random() * 2 + 1;
+    const size = (Math.random() * 5 + 3) * effectMultiplier; // Boyutu artırdık
+    const speed = (Math.random() * 3 + 2) * effectMultiplier; // Hızı artırdık
     const angle = Math.random() * Math.PI * 2;
     
     rgbParticles.push({
@@ -163,39 +173,36 @@ function createRGBParticle() {
         size,
         speed,
         angle,
-        color: RGB_COLORS[Math.floor(Math.random() * RGB_COLORS.length)],
-        alpha: Math.random() * 0.7 + 0.3, // Daha parlak partiküller
-        pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: Math.random() * 0.1 + 0.05
+        color: Math.random() < 0.33 ? '#ff0000' : Math.random() < 0.5 ? '#00ff00' : '#0000ff',
+        alpha: Math.random() * 0.7 + 0.3, // Opaklığı artırdık
+        pulse: 0,
+        pulseSpeed: Math.random() * 0.15 + 0.1 // Nabız hızını artırdık
     });
 }
 
 function updateRGBParticles() {
+    const effectMultiplier = 1 + (gameState.level * 0.1);
+    
     for (let i = rgbParticles.length - 1; i >= 0; i--) {
         const p = rgbParticles[i];
         
-        // Parçacık hareketi
         p.x += Math.cos(p.angle) * p.speed;
         p.y += Math.sin(p.angle) * p.speed;
         
-        // Nabız efekti
-        p.pulse += p.pulseSpeed;
-        p.alpha = 0.5 + Math.sin(p.pulse) * 0.3;
+        p.pulse += p.pulseSpeed * effectMultiplier;
+        p.alpha = 0.6 + Math.sin(p.pulse) * 0.4;
         
-        // Ekran sınırlarını kontrol et
         if (p.x < 0) p.x = canvas.width;
         if (p.x > canvas.width) p.x = 0;
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
         
-        // Rastgele yön değişimi
-        if (Math.random() < 0.02) {
-            p.angle += (Math.random() - 0.5) * Math.PI / 2;
+        if (Math.random() < 0.03) { // Yön değişim şansını artırdık
+            p.angle += (Math.random() - 0.5) * Math.PI / 1.5;
         }
     }
     
-    // Yeni parçacıklar ekle
-    if (Math.random() < 0.2) {
+    if (Math.random() < 0.3) { // RGB parçacık oluşturma şansını artırdık
         createRGBParticle();
     }
 }
@@ -204,22 +211,11 @@ function drawRGBParticles() {
     rgbParticles.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * (1 + Math.sin(p.pulse) * 0.3), 0, Math.PI * 2);
-        
-        // Renk geçişi efekti
-        const gradient = ctx.createRadialGradient(
-            p.x, p.y, 0,
-            p.x, p.y, p.size * 2
-        );
-        gradient.addColorStop(0, p.color);
-        gradient.addColorStop(1, 'transparent');
-        
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = p.color.replace('1)', `${p.alpha})`);
         ctx.shadowBlur = 15;
         ctx.shadowColor = p.color;
-        ctx.globalAlpha = p.alpha;
         ctx.fill();
     });
-    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 }
 
@@ -429,11 +425,10 @@ function gameStep(currentTime) {
     
     gameState.gameLoop = requestAnimationFrame(gameStep);
     
-    // Efekt güncellemeleri
-    updateSnakeColor(currentTime);
+    // Sadece dış alan efektlerini güncelle
     updateExplosions();
     updateParticles();
-    updateRGBParticles(); // Yeni
+    updateRGBParticles();
     
     const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
     if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
@@ -668,7 +663,7 @@ function gameOver() {
 // Çizim İşlemleri
 function draw() {
     drawBackground();
-    drawRGBParticles(); // Yeni
+    drawRGBParticles();
     drawParticles();
     drawExplosions();
     drawObstacles();
@@ -677,31 +672,32 @@ function draw() {
 }
 
 function drawBackground() {
-    // Siyah arkaplan
+    // Sade siyah arkaplan
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // RGB kenar efekti - 3 farklı renk kullanarak
-    const time = Date.now() * 0.001; // Zaman bazlı animasyon
-    const colors = [
-        `hsla(${(time * 50) % 360}, 100%, 50%, 0.5)`,
-        `hsla(${((time * 50) + 120) % 360}, 100%, 50%, 0.5)`,
-        `hsla(${((time * 50) + 240) % 360}, 100%, 50%, 0.5)`
-    ];
+    // Dış alan RGB efektleri
+    const outerCanvas = document.createElement('canvas');
+    outerCanvas.width = canvas.width + 100;
+    outerCanvas.height = canvas.height + 100;
+    const outerCtx = outerCanvas.getContext('2d');
     
-    // Çoklu kenar çizimi
-    for(let i = 0; i < 3; i++) {
-        ctx.strokeStyle = colors[i];
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = colors[i];
-        ctx.strokeRect(i * 2, i * 2, canvas.width - i * 4, canvas.height - i * 4);
-    }
+    // RGB kenar efekti
+    const gradient = outerCtx.createLinearGradient(0, 0, outerCanvas.width, outerCanvas.height);
+    gradient.addColorStop(0, `hsla(${borderHue}, 100%, 50%, 0.4)`);
+    gradient.addColorStop(0.5, `hsla(${(borderHue + 120) % 360}, 100%, 50%, 0.4)`);
+    gradient.addColorStop(1, `hsla(${(borderHue + 240) % 360}, 100%, 50%, 0.4)`);
     
-    // Grid çizgileri
-    ctx.strokeStyle = `hsla(${(time * 50) % 360}, 70%, 50%, 0.2)`;
+    outerCtx.strokeStyle = gradient;
+    outerCtx.lineWidth = 20;
+    outerCtx.shadowBlur = 50;
+    outerCtx.shadowColor = `hsla(${borderHue}, 100%, 50%, 0.8)`;
+    outerCtx.strokeRect(40, 40, canvas.width + 20, canvas.height + 20);
+    
+    // Grid çizgileri (sade)
+    ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
-    ctx.shadowBlur = 5;
+    ctx.globalAlpha = 0.2;
     
     for (let i = 0; i <= GAME_CONFIG.GRID_COUNT; i++) {
         const pos = i * GAME_CONFIG.GRID_SIZE;
@@ -717,13 +713,12 @@ function drawBackground() {
         ctx.stroke();
     }
     
-    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
 }
 
 function drawObstacles() {
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = '#888';
-    ctx.fillStyle = '#888';
+    // Sade engel çizimi
+    ctx.fillStyle = '#333';
     
     gameState.obstacles.forEach(obstacle => {
         ctx.fillRect(
@@ -733,26 +728,12 @@ function drawObstacles() {
             GAME_CONFIG.GRID_SIZE - 1
         );
     });
-    
-    ctx.shadowBlur = 0;
 }
 
 function drawSnake() {
-    if (gameState.powerUpType === 'GHOST') {
-        ctx.globalAlpha = 0.5;
-    }
-    
-    // Neon efekti için glow artırıldı
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = ANIMALS[gameState.currentAnimal].color;
-    
+    // Sade yılan çizimi
     gameState.snake.forEach((segment, index) => {
-        // Ana renk
-        ctx.fillStyle = index === 0 ? 
-            ANIMALS[gameState.currentAnimal].color : 
-            shadeColor(ANIMALS[gameState.currentAnimal].color, -20);
-            
-        // Yılan parçalarını büyüttük
+        ctx.fillStyle = index === 0 ? '#fff' : '#666';
         ctx.fillRect(
             segment.x * GAME_CONFIG.GRID_SIZE,
             segment.y * GAME_CONFIG.GRID_SIZE,
@@ -760,21 +741,10 @@ function drawSnake() {
             GAME_CONFIG.GRID_SIZE - 1
         );
         
-        // İç kısım için daha parlak renk
         if (index === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.fillRect(
-                segment.x * GAME_CONFIG.GRID_SIZE + 3,
-                segment.y * GAME_CONFIG.GRID_SIZE + 3,
-                GAME_CONFIG.GRID_SIZE - 7,
-                GAME_CONFIG.GRID_SIZE - 7
-            );
             drawSnakeEyes(segment);
         }
     });
-    
-    ctx.shadowBlur = 0;
-    ctx.globalAlpha = 1;
 }
 
 function drawSnakeEyes(head) {
@@ -815,29 +785,14 @@ function drawSnakeEyes(head) {
 }
 
 function drawFood() {
-    // Neon efekti için glow
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ff0';
-    
-    // Ana yem
-    ctx.fillStyle = '#ff0';
+    // Sade yem çizimi
+    ctx.fillStyle = '#fff';
     ctx.fillRect(
         gameState.food.x * GAME_CONFIG.GRID_SIZE,
         gameState.food.y * GAME_CONFIG.GRID_SIZE,
         GAME_CONFIG.GRID_SIZE - 1,
         GAME_CONFIG.GRID_SIZE - 1
     );
-    
-    // İç kısım için daha parlak renk
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(
-        gameState.food.x * GAME_CONFIG.GRID_SIZE + 2,
-        gameState.food.y * GAME_CONFIG.GRID_SIZE + 2,
-        GAME_CONFIG.GRID_SIZE - 5,
-        GAME_CONFIG.GRID_SIZE - 5
-    );
-    
-    ctx.shadowBlur = 0;
 }
 
 // Klavye Kontrolleri
