@@ -146,18 +146,16 @@ function showMessage(text, duration = 1000) {
 }
 
 function startGame() {
-    if (!isGameRunning) {
-        isGameRunning = true;
-        isPaused = false;
-        resetGame();
-        showMessage('Bölüm 1', 1000);
-        startBtn.textContent = 'Yeniden Başlat';
-        SoundManager.startBgMusic();
-        drawGame();
-    } else {
-        resetGame();
-        showMessage('Yeniden Başladı', 1000);
-        SoundManager.startBgMusic();
+    isGameRunning = true;
+    isPaused = false;
+    resetGame();
+    showMessage('Bölüm 1', 1000);
+    startBtn.textContent = 'Yeniden Başlat';
+    SoundManager.startBgMusic();
+    
+    // Oyun döngüsünü başlat
+    if (!gameLoop) {
+        gameLoop = requestAnimationFrame(drawGame);
     }
 }
 
@@ -199,7 +197,7 @@ function drawGame() {
         return;
     }
     
-    requestAnimationFrame(drawGame);
+    gameLoop = requestAnimationFrame(drawGame);
 }
 
 function updateGlow() {
@@ -416,12 +414,12 @@ function generateFood() {
 }
 
 function handleGameOver() {
-    // Önce sesi çal
     SoundManager.playGameOver();
-    // Sonra mesajı göster
     showMessage(`Öldün! Skor: ${score} - Bölüm: ${currentLevel}`, 0);
     isGameRunning = false;
     startBtn.textContent = 'Başla';
+    cancelAnimationFrame(gameLoop);
+    gameLoop = null;
 }
 
 function gameOver() {
@@ -448,7 +446,7 @@ function resetGame() {
     dy = 0;
     lastDirection = { dx: 1, dy: 0 };
     score = 0;
-    baseSpeed = levels[currentLevel].speed;
+    baseSpeed = isMobile ? 200 : levels[currentLevel].speed;
     gameSpeed = baseSpeed;
     lastMoveTime = Date.now();
     document.getElementById('score').textContent = score;
