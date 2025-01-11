@@ -105,6 +105,23 @@ const POWER_UPS = {
     }
 };
 
+// Neon renkler için sabitler
+const NEON_COLORS = [
+    '#0f0',  // Yeşil
+    '#f0f',  // Pembe
+    '#0ff',  // Cyan
+    '#ff0',  // Sarı
+    '#f00',  // Kırmızı
+    '#00f',  // Mavi
+    '#f50',  // Turuncu
+    '#f0c',  // Mor
+    '#0fc',  // Turkuaz
+    '#fc0'   // Altın
+];
+
+// Renk değişim zamanı (ms)
+const COLOR_CHANGE_INTERVAL = 2000;
+
 // Canvas ve Ses Öğeleri
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -131,12 +148,8 @@ let gameState = {
     gameLoop: null,
     lastRenderTime: 0,
     gameStarted: false,
-    powerUpActive: false,
-    powerUpType: null,
-    powerUpTimer: null,
-    specialAbilityActive: false,
-    specialAbilityTimer: null,
-    lives: 1,
+    currentColorIndex: 0,
+    lastColorChange: 0,
     gridCount: GAME_CONFIG.GRID_COUNT
 };
 
@@ -187,55 +200,31 @@ document.querySelector('.swipe-overlay').addEventListener('touchstart', handleTo
 document.querySelector('.swipe-overlay').addEventListener('touchmove', handleTouchMove);
 document.querySelector('.swipe-overlay').addEventListener('touchend', handleTouchEnd);
 
-function handleTouchStart(event) {
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
+// Renk değiştirme fonksiyonu
+function updateSnakeColor(currentTime) {
+    if (currentTime - gameState.lastColorChange > COLOR_CHANGE_INTERVAL) {
+        gameState.currentColorIndex = (gameState.currentColorIndex + 1) % NEON_COLORS.length;
+        gameState.lastColorChange = currentTime;
+        ANIMALS[gameState.currentAnimal].color = NEON_COLORS[gameState.currentColorIndex];
+    }
 }
 
-function handleTouchMove(event) {
-    if (!touchStartX || !touchStartY) return;
-
-    const touchEndX = event.touches[0].clientX;
-    const touchEndY = event.touches[0].clientY;
-
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // Minimum kaydırma mesafesi
-    if (Math.abs(deltaX) < 30 && Math.abs(deltaY) < 30) return;
-
-    // Yön belirleme
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Yatay hareket
-        if (deltaX > 0) {
-            gameState.nextDirection = { x: 1, y: 0 };
-        } else {
-            gameState.nextDirection = { x: -1, y: 0 };
-        }
-    } else {
-        // Dikey hareket
-        if (deltaY > 0) {
-            gameState.nextDirection = { x: 0, y: 1 };
-        } else {
-            gameState.nextDirection = { x: 0, y: -1 };
-        }
-    }
-
-    touchStartX = null;
-    touchStartY = null;
-}
-
-function handleTouchEnd(event) {
-    const now = Date.now();
-    if (now - lastTouchTime < 300) {
-        // Çift dokunma - özel yetenek
-        useSpecialAbility();
-    }
-    lastTouchTime = now;
-
-    if (!gameState.gameStarted) {
-        startGame();
-    }
+// Oyun Döngüsü
+function gameStep(currentTime) {
+    if (!gameState.gameStarted) return;
+    
+    gameState.gameLoop = requestAnimationFrame(gameStep);
+    
+    // Renk güncelleme
+    updateSnakeColor(currentTime);
+    
+    const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
+    if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
+    
+    gameState.lastRenderTime = currentTime;
+    
+    updateGame();
+    draw();
 }
 
 // Oyun Başlatma ve Sıfırlama
@@ -253,12 +242,8 @@ function initializeGame() {
         gameLoop: null,
         lastRenderTime: 0,
         gameStarted: false,
-        powerUpActive: false,
-        powerUpType: null,
-        powerUpTimer: null,
-        specialAbilityActive: false,
-        specialAbilityTimer: null,
-        lives: 1,
+        currentColorIndex: 0,
+        lastColorChange: 0,
         gridCount: GAME_CONFIG.GRID_COUNT
     };
     
@@ -365,24 +350,6 @@ function updatePowerUpUI(powerUp) {
     powerUpElement.textContent = powerUp.name + ' aktif!';
     powerUpElement.style.color = powerUp.color;
     powerUpElement.style.display = 'block';
-}
-
-// Oyun Döngüsü
-function gameStep(currentTime) {
-    if (!gameState.gameStarted) return;
-    
-    gameState.gameLoop = requestAnimationFrame(gameStep);
-    
-    const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
-    if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
-    
-    gameState.lastRenderTime = currentTime;
-    
-    // Hareket güncelleme
-    updateMovement();
-    
-    updateGame();
-    draw();
 }
 
 // Oyun Mantığı Güncelleme
@@ -624,12 +591,6 @@ function handleKeyPress(event) {
         return;
     }
     
-    // Özel yetenek aktivasyonu - F tuşu
-    if (event.code === 'KeyF' && gameState.gameStarted) {
-        useSpecialAbility();
-        return;
-    }
-    
     const keyMappings = {
         ArrowUp: { x: 0, y: -1 },
         ArrowDown: { x: 0, y: 1 },
@@ -640,17 +601,11 @@ function handleKeyPress(event) {
     const newDirection = keyMappings[event.key];
     if (!newDirection) return;
     
-    // Serbest hareket için çapraz kontrol
-    if (ANIMALS[gameState.currentAnimal].movement === 'free') {
-        gameState.nextDirection = newDirection;
-    } else {
-        // Normal hareket için ters yön kontrolü
-        const currentDirection = gameState.direction;
-        if (newDirection.x === -currentDirection.x || newDirection.y === -currentDirection.y) {
-            return;
-        }
-        gameState.nextDirection = newDirection;
+    const currentDirection = gameState.direction;
+    if (newDirection.x === -currentDirection.x || newDirection.y === -currentDirection.y) {
+        return;
     }
+    gameState.nextDirection = newDirection;
 }
 
 // Oyunu Başlat
@@ -767,103 +722,53 @@ function updateMovement() {
     }
 }
 
-// Özel Yetenek Kullanımı
-function useSpecialAbility() {
-    if (gameState.specialAbilityActive) return;
-    
-    const animal = ANIMALS[gameState.currentAnimal];
-    if (!animal.specialAbility) return;
-    
-    gameState.specialAbilityActive = true;
-    
-    switch(animal.specialAbility) {
-        case 'turbo':
-            // Tavşan turbo modu
-            const originalSpeed = gameState.gameSpeed;
-            gameState.gameSpeed *= 0.5;
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.gameSpeed = originalSpeed;
-                gameState.specialAbilityActive = false;
-            }, 3000);
-            break;
-            
-        case 'claw':
-            // Kaplan pençe saldırısı
-            removeNearbyObstacles();
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.specialAbilityActive = false;
-            }, 1000);
-            break;
-            
-        case 'fireball':
-            // Ejderha ateş topu
-            shootFireball();
-            gameState.specialAbilityTimer = setTimeout(() => {
-                gameState.specialAbilityActive = false;
-            }, 2000);
-            break;
+// Dokunma olayları
+function handleTouchStart(event) {
+    event.preventDefault();
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    if (!touchStartX || !touchStartY) return;
+
+    const touchEndX = event.touches[0].clientX;
+    const touchEndY = event.touches[0].clientY;
+
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Minimum kaydırma mesafesi
+    if (Math.abs(deltaX) < 30 && Math.abs(deltaY) < 30) return;
+
+    // Yön belirleme
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Yatay hareket
+        if (deltaX > 0) {
+            gameState.nextDirection = { x: 1, y: 0 };
+        } else {
+            gameState.nextDirection = { x: -1, y: 0 };
+        }
+    } else {
+        // Dikey hareket
+        if (deltaY > 0) {
+            gameState.nextDirection = { x: 0, y: 1 };
+        } else {
+            gameState.nextDirection = { x: 0, y: -1 };
+        }
+    }
+
+    touchStartX = null;
+    touchStartY = null;
+}
+
+function handleTouchEnd(event) {
+    event.preventDefault();
+    if (!gameState.gameStarted) {
+        startGame();
     }
 }
-
-// Engel Kaldırma (Kaplan için)
-function removeNearbyObstacles() {
-    const head = gameState.snake[0];
-    const range = 2;
-    
-    gameState.obstacles = gameState.obstacles.filter(obs => {
-        const distance = Math.abs(obs.x - head.x) + Math.abs(obs.y - head.y);
-        return distance > range;
-    });
-}
-
-// Ateş Topu (Ejderha için)
-function shootFireball() {
-    const head = gameState.snake[0];
-    const direction = gameState.direction;
-    
-    let fireball = { ...head };
-    const interval = setInterval(() => {
-        fireball.x += direction.x * 2;
-        fireball.y += direction.y * 2;
-        
-        // Engelleri yok et
-        gameState.obstacles = gameState.obstacles.filter(obs => 
-            obs.x !== fireball.x || obs.y !== fireball.y
-        );
-        
-        // Ekran dışına çıktıysa durdur
-        if (fireball.x < 0 || fireball.x >= GAME_CONFIG.GRID_COUNT ||
-            fireball.y < 0 || fireball.y >= GAME_CONFIG.GRID_COUNT) {
-            clearInterval(interval);
-        }
-    }, 100);
-} 
-
-// Renk değiştirme işleyicisi
-function initializeColorPicker() {
-    const buttons = document.querySelectorAll('.color-btn');
-    buttons.forEach(button => {
-        button.addEventListener('click', () => {
-            const color = button.dataset.color;
-            ANIMALS[gameState.currentAnimal].color = color;
-            
-            // Aktif butonu güncelle
-            buttons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // UI'ı güncelle
-            updateAnimalUI();
-        });
-        
-        // İlk rengi aktif olarak işaretle
-        if (button.dataset.color === ANIMALS[gameState.currentAnimal].color) {
-            button.classList.add('active');
-        }
-    });
-}
-
-// Oyunu başlatmadan önce renk seçiciyi başlat
-initializeColorPicker(); 
 
 function updateMessages() {
     const message = document.getElementById('message');

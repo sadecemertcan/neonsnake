@@ -31,6 +31,14 @@
             text-shadow: 0 0 5px var(--primary-color);
             overflow: hidden;
             touch-action: none;
+            overscroll-behavior: contain;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            -webkit-overflow-scrolling: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #game-container {
@@ -147,6 +155,7 @@
             background: var(--glass-bg);
             backdrop-filter: blur(5px);
             border-radius: 3px;
+            display: none;
         }
 
         .color-buttons {
@@ -196,8 +205,13 @@
             }
 
             #game-info {
-                font-size: 16px;
-                gap: 10px;
+                font-size: 24px;
+                gap: 15px;
+            }
+
+            #score, #level, #animal {
+                padding: 8px 20px;
+                font-weight: bold;
             }
 
             #gameCanvas {
@@ -206,13 +220,25 @@
             }
 
             #message {
-                font-size: 20px;
+                font-size: 28px;
                 width: 90%;
+                padding: 30px;
             }
 
-            #controls, #color-picker {
-                font-size: 14px;
-                margin-top: 10px;
+            #controls {
+                font-size: 20px;
+                margin-top: 15px;
+                padding: 20px;
+            }
+
+            .mobile-controls {
+                font-size: 22px;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+
+            .desktop-controls {
+                display: none;
             }
         }
 
@@ -258,19 +284,7 @@
         <div id="controls">
             <p>Kontroller</p>
             <p class="desktop-controls">↑ ↓ ← → : Hareket</p>
-            <p class="desktop-controls">F : Özel Yetenek</p>
             <p class="mobile-controls">Kaydırarak Hareket Et</p>
-            <p class="mobile-controls">Ekrana Dokun: Özel Yetenek</p>
-        </div>
-        <div id="color-picker">
-            <p>Yılan Rengi</p>
-            <div class="color-buttons">
-                <button class="color-btn" data-color="#0f0" style="background-color: #0f0"></button>
-                <button class="color-btn" data-color="#f0f" style="background-color: #f0f"></button>
-                <button class="color-btn" data-color="#0ff" style="background-color: #0ff"></button>
-                <button class="color-btn" data-color="#ff0" style="background-color: #ff0"></button>
-                <button class="color-btn" data-color="#f00" style="background-color: #f00"></button>
-            </div>
         </div>
     </div>
 
