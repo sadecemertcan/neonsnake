@@ -1,13 +1,13 @@
 // Oyun Sabitleri
 const GAME_CONFIG = {
-    GRID_SIZE: 15,
-    GRID_COUNT: 30,
-    INITIAL_SPEED: 200,
-    MIN_SPEED: 50,
-    SPEED_DECREASE: 5,
-    POWER_UP_CHANCE: 0.3,
+    GRID_SIZE: 20,
+    GRID_COUNT: 25,
+    INITIAL_SPEED: 120,
+    MIN_SPEED: 40,
+    SPEED_DECREASE: 8,
+    POWER_UP_CHANCE: 0.2,
     POINTS_PER_FOOD: 10,
-    LEVEL_UP_SCORE: 100
+    LEVEL_UP_SCORE: 50
 };
 
 // Hayvan Özellikleri
@@ -78,13 +78,6 @@ const POWER_UPS = {
         duration: 5000,
         apply: () => { gameSpeed = Math.max(GAME_CONFIG.MIN_SPEED, gameSpeed * 0.7); },
         remove: () => { gameSpeed = GAME_CONFIG.INITIAL_SPEED - (level - 1) * GAME_CONFIG.SPEED_DECREASE; }
-    },
-    REVERSE: {
-        name: 'Ters Kontrol',
-        color: '#f0f',
-        duration: 5000,
-        apply: () => {},
-        remove: () => {}
     },
     GHOST: {
         name: 'Hayalet Modu',
@@ -483,8 +476,8 @@ function drawSnake() {
         ctx.globalAlpha = 0.5;
     }
     
-    // Neon efekti için glow
-    ctx.shadowBlur = 10;
+    // Neon efekti için glow artırıldı
+    ctx.shadowBlur = 15;
     ctx.shadowColor = ANIMALS[gameState.currentAnimal].color;
     
     gameState.snake.forEach((segment, index) => {
@@ -493,6 +486,7 @@ function drawSnake() {
             ANIMALS[gameState.currentAnimal].color : 
             shadeColor(ANIMALS[gameState.currentAnimal].color, -20);
             
+        // Yılan parçalarını büyüttük
         ctx.fillRect(
             segment.x * GAME_CONFIG.GRID_SIZE,
             segment.y * GAME_CONFIG.GRID_SIZE,
@@ -504,10 +498,10 @@ function drawSnake() {
         if (index === 0) {
             ctx.fillStyle = '#fff';
             ctx.fillRect(
-                segment.x * GAME_CONFIG.GRID_SIZE + 2,
-                segment.y * GAME_CONFIG.GRID_SIZE + 2,
-                GAME_CONFIG.GRID_SIZE - 5,
-                GAME_CONFIG.GRID_SIZE - 5
+                segment.x * GAME_CONFIG.GRID_SIZE + 3,
+                segment.y * GAME_CONFIG.GRID_SIZE + 3,
+                GAME_CONFIG.GRID_SIZE - 7,
+                GAME_CONFIG.GRID_SIZE - 7
             );
             drawSnakeEyes(segment);
         }
@@ -519,25 +513,25 @@ function drawSnake() {
 
 function drawSnakeEyes(head) {
     ctx.fillStyle = '#000';
-    const eyeSize = 2;
-    const eyeOffset = 3;
+    const eyeSize = 3; // Göz boyutu artırıldı
+    const eyeOffset = 4; // Göz konumu ayarlandı
     
     const eyePositions = {
         '1,0': [
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset, y: eyeOffset },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
+            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - 2, y: eyeOffset },
+            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - 2, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
         ],
         '-1,0': [
-            { x: eyeOffset - eyeSize, y: eyeOffset },
-            { x: eyeOffset - eyeSize, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
+            { x: eyeOffset, y: eyeOffset },
+            { x: eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize }
         ],
         '0,-1': [
-            { x: eyeOffset, y: eyeOffset - eyeSize },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: eyeOffset - eyeSize }
+            { x: eyeOffset, y: eyeOffset },
+            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: eyeOffset }
         ],
         '0,1': [
-            { x: eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset },
-            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: GAME_CONFIG.GRID_SIZE - eyeOffset }
+            { x: eyeOffset, y: GAME_CONFIG.GRID_SIZE - eyeOffset - 2 },
+            { x: GAME_CONFIG.GRID_SIZE - eyeOffset - eyeSize, y: GAME_CONFIG.GRID_SIZE - eyeOffset - 2 }
         ]
     };
     
