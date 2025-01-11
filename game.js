@@ -120,20 +120,31 @@ function handleTouch(event) {
 
 // Oyunu başlat
 function startGame() {
-    if (isGameRunning) return;
-    
-    resetGame();
+    score = 0;
+    currentLevel = 1;
+    levelTarget = 100;
+    gameSpeed = 10;
+    dx = 10;
+    dy = 0;
+    snake = [{x: 200, y: 200}];
     isGameRunning = true;
     isPaused = false;
-    startBtn.textContent = 'Yeniden Başlat';
     
+    // Oyun alanını hazırla
+    generateFood();
+    generateObstacles();
+    updateScore();
+    updateLevel();
+    messageDiv.style.display = 'none';
+    
+    // Ses ayarları
     if (isSoundOn) {
         bgMusic.currentTime = 0;
         bgMusic.play();
     }
     
-    generateFood();
-    generateObstacles();
+    // Oyun döngüsünü başlat
+    startBtn.textContent = 'Yeniden Başlat';
     lastRenderTime = performance.now();
     gameLoop = requestAnimationFrame(update);
 }
@@ -144,10 +155,9 @@ function update(currentTime) {
         return;
     }
     
-    gameLoop = requestAnimationFrame(update);
-    
     const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
     if (secondsSinceLastRender < 1 / gameSpeed) {
+        gameLoop = requestAnimationFrame(update);
         return;
     }
     
@@ -156,6 +166,8 @@ function update(currentTime) {
     moveSnake();
     checkCollision();
     drawGame();
+    
+    gameLoop = requestAnimationFrame(update);
 }
 
 // Oyunu sıfırla
@@ -241,6 +253,50 @@ function isColliding(pos1, pos2) {
     return pos1.x === pos2.x && pos1.y === pos2.y;
 }
 
+// Yılanı hareket ettir
+function moveSnake() {
+    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+    snake.unshift(head);
+    
+    if (isColliding(head, food)) {
+        score += 10;
+        updateScore();
+        checkLevelProgress();
+        generateFood();
+        SoundManager.playEat();
+    } else {
+        snake.pop();
+    }
+}
+
+// Çarpışmaları kontrol et
+function checkCollision() {
+    const head = snake[0];
+    
+    // Duvarlarla çarpışma
+    if (head.x < 0 || head.x >= canvas.width || 
+        head.y < 0 || head.y >= canvas.height) {
+        gameOver();
+        return;
+    }
+    
+    // Yılanın kendisiyle çarpışması
+    for (let i = 1; i < snake.length; i++) {
+        if (isColliding(head, snake[i])) {
+            gameOver();
+            return;
+        }
+    }
+    
+    // Engellerle çarpışma
+    for (let obstacle of obstacles) {
+        if (isColliding(head, obstacle)) {
+            gameOver();
+            return;
+        }
+    }
+}
+
 // Oyunu çiz
 function drawGame() {
     // Arka planı temizle
@@ -313,4 +369,5 @@ function gameOver() {
     
     messageDiv.textContent = `Öldün! Skor: ${score} - Bölüm: ${currentLevel}`;
     messageDiv.style.display = 'block';
+    startBtn.textContent = 'Başla';
 } 
