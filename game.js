@@ -130,7 +130,15 @@ const pauseBtn = document.getElementById('pauseBtn');
 const messageDiv = document.getElementById('message');
 const levelInfo = document.getElementById('levelInfo');
 
-startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('click', function() {
+    if (!isGameRunning || gameOver()) {
+        startGame();
+    } else {
+        resetGame();
+        showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Yeniden Başladı', 1000);
+        SoundManager.startBgMusic();
+    }
+});
 pauseBtn.addEventListener('click', togglePause);
 document.addEventListener('keydown', handleKeyPress);
 
@@ -197,19 +205,14 @@ function showMessage(text, duration = 1000) {
 }
 
 function startGame() {
-    if (!isGameRunning) {
-        isGameRunning = true;
-        isPaused = false;
-        resetGame();
-        showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Bölüm 1', 1000);
-        startBtn.textContent = 'Yeniden Başlat';
-        SoundManager.startBgMusic();
-        drawGame();
-    } else {
-        resetGame();
-        showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Yeniden Başladı', 1000);
-        SoundManager.startBgMusic();
-    }
+    isGameRunning = true;
+    isPaused = false;
+    resetGame();
+    showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Bölüm 1', 1000);
+    startBtn.textContent = 'Yeniden Başlat';
+    SoundManager.startBgMusic();
+    lastMoveTime = Date.now();
+    requestAnimationFrame(drawGame);
 }
 
 function togglePause() {
@@ -250,7 +253,9 @@ function drawGame() {
         return;
     }
     
-    requestAnimationFrame(drawGame);
+    if (isGameRunning) {
+        requestAnimationFrame(drawGame);
+    }
 }
 
 function updateGlow() {
@@ -467,9 +472,7 @@ function generateFood() {
 }
 
 function handleGameOver() {
-    // Önce sesi çal
     SoundManager.playGameOver();
-    // Sonra mesajı göster
     showMessage(`Öldün! Skor: ${score} - Bölüm: ${currentLevel}`, 0);
     isGameRunning = false;
     startBtn.textContent = 'Başla';
