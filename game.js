@@ -187,8 +187,24 @@ document.addEventListener('touchmove', function(e) {
 }, { passive: false });
 
 document.addEventListener('touchstart', function(e) {
-    if (e.target.tagName !== 'BUTTON') {
-        e.preventDefault();
+    if (!gameState.gameStarted) {
+        startGame();
+        return;
+    }
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+    if (!gameState.gameStarted) {
+        startGame();
+        return;
+    }
+}, { passive: false });
+
+// Canvas'a özel dokunma olayı
+canvas.addEventListener('touchstart', function(e) {
+    if (!gameState.gameStarted) {
+        startGame();
+        return;
     }
 }, { passive: false });
 
@@ -718,7 +734,6 @@ function startGame() {
     if (gameState.gameLoop) return;
     
     initializeGame();
-    changeAnimal();
     gameState.gameStarted = true;
     gameState.lastRenderTime = 0;
     
