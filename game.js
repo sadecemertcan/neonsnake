@@ -16,7 +16,23 @@ const BORDER_COLOR_SPEED = 2;
 
 // Arkaplan patlamaları için
 const explosions = [];
-const MAX_EXPLOSIONS = 5;
+const MAX_EXPLOSIONS = 8;
+const EXPLOSION_CHANCE = 0.1;
+
+// Neon parçacıklar için
+const particles = [];
+const MAX_PARTICLES = 50;
+
+// RGB Partiküller için ayarlar
+const MAX_RGB_PARTICLES = 150; // Partikül sayısını artırdık
+const RGB_COLORS = [
+    '#ff0000', // Kırmızı
+    '#00ff00', // Yeşil
+    '#0000ff', // Mavi
+    '#ff00ff', // Mor
+    '#00ffff', // Cyan
+    '#ffff00'  // Sarı
+];
 
 function createExplosion() {
     if (explosions.length >= MAX_EXPLOSIONS) return;
@@ -59,6 +75,152 @@ function drawExplosions() {
         ctx.lineWidth = 2;
         ctx.stroke();
     });
+}
+
+function createParticle() {
+    if (particles.length >= MAX_PARTICLES) return;
+    
+    const edge = Math.floor(Math.random() * 4); // 0: üst, 1: sağ, 2: alt, 3: sol
+    let x, y, dx, dy;
+    
+    switch(edge) {
+        case 0: // üst
+            x = Math.random() * canvas.width;
+            y = -10;
+            dx = (Math.random() - 0.5) * 4;
+            dy = Math.random() * 2 + 1;
+            break;
+        case 1: // sağ
+            x = canvas.width + 10;
+            y = Math.random() * canvas.height;
+            dx = -(Math.random() * 2 + 1);
+            dy = (Math.random() - 0.5) * 4;
+            break;
+        case 2: // alt
+            x = Math.random() * canvas.width;
+            y = canvas.height + 10;
+            dx = (Math.random() - 0.5) * 4;
+            dy = -(Math.random() * 2 + 1);
+            break;
+        case 3: // sol
+            x = -10;
+            y = Math.random() * canvas.height;
+            dx = Math.random() * 2 + 1;
+            dy = (Math.random() - 0.5) * 4;
+            break;
+    }
+    
+    particles.push({
+        x, y, dx, dy,
+        size: Math.random() * 3 + 1,
+        hue: Math.random() * 360,
+        life: 1
+    });
+}
+
+function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life -= 0.01;
+        
+        if (p.life <= 0 || p.x < -20 || p.x > canvas.width + 20 || 
+            p.y < -20 || p.y > canvas.height + 20) {
+            particles.splice(i, 1);
+        }
+    }
+    
+    if (Math.random() < 0.2) {
+        createParticle();
+    }
+}
+
+function drawParticles() {
+    particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 100%, 50%, ${p.life})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = `hsla(${p.hue}, 100%, 50%, ${p.life})`;
+        ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+}
+
+function createRGBParticle() {
+    if (rgbParticles.length >= MAX_RGB_PARTICLES) return;
+    
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height;
+    const size = Math.random() * 4 + 2;
+    const speed = Math.random() * 2 + 1;
+    const angle = Math.random() * Math.PI * 2;
+    
+    rgbParticles.push({
+        x,
+        y,
+        size,
+        speed,
+        angle,
+        color: RGB_COLORS[Math.floor(Math.random() * RGB_COLORS.length)],
+        alpha: Math.random() * 0.7 + 0.3, // Daha parlak partiküller
+        pulse: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.1 + 0.05
+    });
+}
+
+function updateRGBParticles() {
+    for (let i = rgbParticles.length - 1; i >= 0; i--) {
+        const p = rgbParticles[i];
+        
+        // Parçacık hareketi
+        p.x += Math.cos(p.angle) * p.speed;
+        p.y += Math.sin(p.angle) * p.speed;
+        
+        // Nabız efekti
+        p.pulse += p.pulseSpeed;
+        p.alpha = 0.5 + Math.sin(p.pulse) * 0.3;
+        
+        // Ekran sınırlarını kontrol et
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+        
+        // Rastgele yön değişimi
+        if (Math.random() < 0.02) {
+            p.angle += (Math.random() - 0.5) * Math.PI / 2;
+        }
+    }
+    
+    // Yeni parçacıklar ekle
+    if (Math.random() < 0.2) {
+        createRGBParticle();
+    }
+}
+
+function drawRGBParticles() {
+    rgbParticles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * (1 + Math.sin(p.pulse) * 0.3), 0, Math.PI * 2);
+        
+        // Renk geçişi efekti
+        const gradient = ctx.createRadialGradient(
+            p.x, p.y, 0,
+            p.x, p.y, p.size * 2
+        );
+        gradient.addColorStop(0, p.color);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = p.color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
 // Hayvan Özellikleri
@@ -267,9 +429,11 @@ function gameStep(currentTime) {
     
     gameState.gameLoop = requestAnimationFrame(gameStep);
     
-    // Renk güncelleme
+    // Efekt güncellemeleri
     updateSnakeColor(currentTime);
     updateExplosions();
+    updateParticles();
+    updateRGBParticles(); // Yeni
     
     const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
     if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
@@ -504,6 +668,9 @@ function gameOver() {
 // Çizim İşlemleri
 function draw() {
     drawBackground();
+    drawRGBParticles(); // Yeni
+    drawParticles();
+    drawExplosions();
     drawObstacles();
     drawSnake();
     drawFood();
@@ -514,28 +681,28 @@ function drawBackground() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Neon patlamaları çiz
-    drawExplosions();
+    // RGB kenar efekti - 3 farklı renk kullanarak
+    const time = Date.now() * 0.001; // Zaman bazlı animasyon
+    const colors = [
+        `hsla(${(time * 50) % 360}, 100%, 50%, 0.5)`,
+        `hsla(${((time * 50) + 120) % 360}, 100%, 50%, 0.5)`,
+        `hsla(${((time * 50) + 240) % 360}, 100%, 50%, 0.5)`
+    ];
     
-    // RGB border rengi güncelle
-    borderHue = (borderHue + BORDER_COLOR_SPEED) % 360;
-    const borderColor = `hsl(${borderHue}, 100%, 50%)`;
+    // Çoklu kenar çizimi
+    for(let i = 0; i < 3; i++) {
+        ctx.strokeStyle = colors[i];
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = colors[i];
+        ctx.strokeRect(i * 2, i * 2, canvas.width - i * 4, canvas.height - i * 4);
+    }
     
-    // Oyun alanı kenarları
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 4;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = borderColor;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-    
-    // Neon grid çizgileri
-    const gridSize = 20;
-    ctx.strokeStyle = BACKGROUND_COLORS.grid;
+    // Grid çizgileri
+    ctx.strokeStyle = `hsla(${(time * 50) % 360}, 70%, 50%, 0.2)`;
     ctx.lineWidth = 1;
-    ctx.globalAlpha = BACKGROUND_COLORS.gridOpacity;
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur = 5;
     
-    // Yatay ve dikey çizgiler
     for (let i = 0; i <= GAME_CONFIG.GRID_COUNT; i++) {
         const pos = i * GAME_CONFIG.GRID_SIZE;
         
@@ -550,7 +717,7 @@ function drawBackground() {
         ctx.stroke();
     }
     
-    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
 function drawObstacles() {
@@ -873,4 +1040,107 @@ function updateMessages() {
 
     // Kontrol metinlerini güncelle
     document.querySelector('#controls p:first-child').textContent = TRANSLATIONS[currentLang].controls;
-} 
+}
+
+// Özel yetenekler için
+function useSpecialAbility() {
+    if (gameState.specialAbilityActive) return;
+    
+    const animal = ANIMALS[gameState.currentAnimal];
+    if (!animal.specialAbility) return;
+    
+    gameState.specialAbilityActive = true;
+    
+    switch(animal.specialAbility) {
+        case 'jump':
+            // Kurbağa: 2 kare atlama
+            const jumpDir = gameState.direction;
+            const jumpHead = gameState.snake[0];
+            const newHead = {
+                x: jumpHead.x + jumpDir.x * 2,
+                y: jumpHead.y + jumpDir.y * 2
+            };
+            if (!isCollision(newHead)) {
+                gameState.snake.unshift(newHead);
+                gameState.snake.pop();
+            }
+            break;
+            
+        case 'turbo':
+            // Tavşan: Hızlanma
+            const originalSpeed = gameState.gameSpeed;
+            gameState.gameSpeed *= 0.5;
+            setTimeout(() => {
+                gameState.gameSpeed = originalSpeed;
+                gameState.specialAbilityActive = false;
+            }, 3000);
+            return;
+            
+        case 'claw':
+            // Kaplan: Engelleri yok etme
+            const range = 2;
+            const tigerHead = gameState.snake[0];
+            gameState.obstacles = gameState.obstacles.filter(obs => {
+                const distance = Math.abs(obs.x - tigerHead.x) + Math.abs(obs.y - tigerHead.y);
+                return distance > range;
+            });
+            break;
+            
+        case 'fly':
+            // Kartal: Duvarlardan geçme
+            gameState.canFly = true;
+            setTimeout(() => {
+                gameState.canFly = false;
+                gameState.specialAbilityActive = false;
+            }, 5000);
+            return;
+            
+        case 'crush':
+            // Timsah: Tüm engelleri kırma
+            gameState.obstacles = [];
+            break;
+            
+        case 'pack':
+            // Kurt: Ekstra can
+            gameState.lives = (gameState.lives || 1) + 1;
+            break;
+            
+        case 'fireball':
+            // Ejderha: Ateş topu
+            shootFireball();
+            break;
+    }
+    
+    setTimeout(() => {
+        gameState.specialAbilityActive = false;
+    }, 1000);
+}
+
+function shootFireball() {
+    const head = gameState.snake[0];
+    const direction = gameState.direction;
+    let fireball = { ...head };
+    
+    const interval = setInterval(() => {
+        fireball.x += direction.x * 2;
+        fireball.y += direction.y * 2;
+        
+        // Engelleri yok et
+        gameState.obstacles = gameState.obstacles.filter(obs => 
+            obs.x !== fireball.x || obs.y !== fireball.y
+        );
+        
+        // Ekran dışına çıktıysa durdur
+        if (fireball.x < 0 || fireball.x >= GAME_CONFIG.GRID_COUNT ||
+            fireball.y < 0 || fireball.y >= GAME_CONFIG.GRID_COUNT) {
+            clearInterval(interval);
+        }
+    }, 100);
+}
+
+// F tuşu için özel yetenek kontrolü
+document.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyF' && gameState.gameStarted) {
+        useSpecialAbility();
+    }
+}); 
