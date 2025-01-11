@@ -29,6 +29,16 @@ let pauseBtn = document.getElementById('pauseBtn');
 canvas.addEventListener('touchstart', handleTouch, { passive: false });
 canvas.addEventListener('click', handleTouch);
 
+// Buton kontrolleri
+startBtn.addEventListener('touchstart', startGameHandler, { passive: false });
+startBtn.addEventListener('click', startGameHandler);
+
+pauseBtn.addEventListener('touchstart', pauseGameHandler, { passive: false });
+pauseBtn.addEventListener('click', pauseGameHandler);
+
+soundToggle.addEventListener('touchstart', toggleSound, { passive: false });
+soundToggle.addEventListener('click', toggleSound);
+
 // Varsayılan dokunmatik davranışları engelle
 document.addEventListener('touchmove', function(e) {
     e.preventDefault();
@@ -66,17 +76,20 @@ function handleTouch(event) {
     }
 }
 
-// Buton kontrolleri
-startBtn.addEventListener('click', () => {
+// Başlatma işleyicisi
+function startGameHandler(event) {
+    event.preventDefault();
     if (!isGameRunning) {
         startGame();
         startBtn.textContent = 'Yeniden Başlat';
     } else {
         resetGame();
     }
-});
+}
 
-pauseBtn.addEventListener('click', () => {
+// Duraklatma işleyicisi
+function pauseGameHandler(event) {
+    event.preventDefault();
     if (!isGameRunning) return;
     
     isPaused = !isPaused;
@@ -88,10 +101,11 @@ pauseBtn.addEventListener('click', () => {
         if (isSoundOn) bgMusic.play();
         gameLoop();
     }
-});
+}
 
-// Ses kontrolü
-soundToggle.addEventListener('click', () => {
+// Ses kontrolü işleyicisi
+function toggleSound(event) {
+    event.preventDefault();
     isSoundOn = !isSoundOn;
     soundToggle.textContent = isSoundOn ? '🔊 Ses' : '🔈 Ses';
     if (isSoundOn) {
@@ -99,7 +113,7 @@ soundToggle.addEventListener('click', () => {
     } else {
         bgMusic.pause();
     }
-});
+}
 
 // Oyunu başlat
 function startGame() {
