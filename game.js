@@ -65,42 +65,45 @@ const pauseBtn = document.getElementById('pauseBtn');
 const messageDiv = document.getElementById('message');
 const levelInfo = document.getElementById('levelInfo');
 
-// Dokunmatik kontroller için event listener'lar
-canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+// Dokunmatik kontroller için event listener
+canvas.addEventListener('touchstart', handleTouch, { passive: false });
 
-function handleTouchStart(e) {
+function handleTouch(e) {
     e.preventDefault();
-    const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-    touchEndX = touchStartX;
-    touchEndY = touchStartY;
-
+    
     // Oyun başlamamışsa veya bitmişse, dokunuşla başlat
     if (!isGameRunning || gameOver()) {
         startGame();
         return;
     }
-}
 
-function handleTouchMove(e) {
     if (!isGameRunning || isPaused) return;
-    
-    e.preventDefault();
+
     const touch = e.touches[0];
-    touchEndX = touch.clientX;
-    touchEndY = touch.clientY;
-
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    // Minimum kaydırma mesafesi
-    const minSwipeDistance = 20;
-
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-        // Yatay hareket
+    const rect = canvas.getBoundingClientRect();
+    
+    // Dokunulan noktanın canvas içindeki koordinatları
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Canvas'ın ortası
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    // Yılanın mevcut konumu (başının konumu)
+    const snakeHeadX = snake[0].x * gridSize;
+    const snakeHeadY = snake[0].y * gridSize;
+    
+    // Dokunulan noktanın yılanın başına göre konumu
+    const deltaX = touchX - snakeHeadX;
+    const deltaY = touchY - snakeHeadY;
+    
+    // Yatay ve dikey mesafelerin mutlak değerleri
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    
+    // Eğer yatay mesafe dikey mesafeden büyükse
+    if (absX > absY) {
         if (deltaX > 0 && dx !== -1) {
             // Sağa
             dx = 1;
@@ -110,8 +113,7 @@ function handleTouchMove(e) {
             dx = -1;
             dy = 0;
         }
-    } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
-        // Dikey hareket
+    } else {
         if (deltaY > 0 && dy !== -1) {
             // Aşağı
             dx = 0;
@@ -122,13 +124,6 @@ function handleTouchMove(e) {
             dy = -1;
         }
     }
-}
-
-function handleTouchEnd(e) {
-    e.preventDefault();
-    // Yeni başlangıç noktasını son dokunulan nokta yap
-    touchStartX = touchEndX;
-    touchStartY = touchEndY;
 }
 
 function updateLevelInfo() {
