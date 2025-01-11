@@ -3,225 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Snake Adventure</title>
+    <title>Neon Yılan</title>
     <style>
         body {
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #0a0a2a;
-            font-family: 'Courier New', Courier, monospace;
+            min-height: 100vh;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
             color: #fff;
-            overflow: hidden;
         }
-        #backgroundCanvas {
-            position: fixed;
-            top: 0;
+
+        #game-container {
+            position: relative;
+        }
+
+        #gameCanvas {
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        #score {
+            position: absolute;
+            top: -40px;
             left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.5;
+            font-size: 24px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
         }
-        .game-container {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
-        }
-        .controls-info {
-            background-color: rgba(0, 0, 0, 0.7);
+
+        #controls {
+            position: absolute;
+            top: 50%;
+            right: -120px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
             padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #00f3ff;
-            box-shadow: 0 0 20px #00f3ff;
-            color: #fff;
-            font-family: 'Courier New', Courier, monospace;
-            text-shadow: 0 0 5px #00f3ff;
-            width: 200px;
+            border: 1px solid #0ff;
+            box-shadow: 0 0 10px #0ff;
         }
-        .controls-info h3 {
-            color: #00f3ff;
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 18px;
-            text-shadow: 0 0 10px #00f3ff;
-        }
-        .key-info {
+
+        .control-key {
             display: flex;
             align-items: center;
             margin: 10px 0;
-            gap: 10px;
+            color: #0ff;
+            text-shadow: 0 0 5px #0ff;
         }
+
         .key {
-            background-color: rgba(0, 243, 255, 0.1);
-            border: 1px solid #00f3ff;
-            padding: 5px 10px;
-            border-radius: 5px;
-            min-width: 30px;
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
             text-align: center;
-            box-shadow: 0 0 5px #00f3ff;
+            border: 1px solid #0ff;
+            margin-right: 10px;
+            box-shadow: 0 0 5px #0ff;
         }
-        canvas {
-            border: 4px solid #00f3ff;
-            background-color: rgba(0, 0, 0, 0.8);
-            image-rendering: pixelated;
-            box-shadow: 0 0 20px #00f3ff;
-        }
-        .info-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 400px;
-            margin-bottom: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #00f3ff;
-        }
-        .score-container {
-            display: flex;
-            gap: 20px;
-        }
-        .score, .level {
-            color: #fff;
-            font-size: 20px;
-            font-weight: bold;
-            text-shadow: 0 0 10px #00f3ff;
-        }
-        .level-info {
-            color: #fff;
-            font-size: 16px;
-            text-shadow: 0 0 10px #00f3ff;
-        }
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 15px;
-        }
-        .btn {
-            background-color: transparent;
-            color: #fff;
-            border: 2px solid #00f3ff;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            text-shadow: 0 0 10px #00f3ff;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
-        }
-        .btn:hover {
-            background-color: #00f3ff;
-            color: #0a0a2a;
-            box-shadow: 0 0 20px #00f3ff;
-        }
-        .message {
+
+        #message {
             position: absolute;
-            top: 45%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 10px 20px;
-            text-align: center;
+            font-size: 24px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 1px solid #0ff;
+            box-shadow: 0 0 10px #0ff;
             display: none;
-            z-index: 1;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            border: 1px solid #00f3ff;
-            box-shadow: 0 0 10px #00f3ff;
-            text-shadow: 0 0 5px #00f3ff;
-        }
-        .sound-control {
-            position: static;
-            display: inline-flex;
-            align-items: center;
-        }
-        .sound-control button {
-            background-color: transparent;
-            color: #fff;
-            border: 2px solid #00f3ff;
-            padding: 8px 20px;
-            cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            text-shadow: 0 0 10px #00f3ff;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
-        }
-        .sound-control button:hover {
-            background-color: #00f3ff;
-            color: #0a0a2a;
-            box-shadow: 0 0 20px #00f3ff;
-        }
-        .sound-control button.active {
-            background-color: #00f3ff;
-            color: #0a0a2a;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <canvas id="backgroundCanvas"></canvas>
-    <div class="info-container">
-        <div class="score-container">
-            <div class="score">Skor: <span id="score">0</span></div>
-            <div class="level">Bölüm: <span id="level">1</span></div>
+    <div id="game-container">
+        <div id="score">Skor: 0</div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <div id="controls">
+            <div class="control-key"><div class="key">↑</div>Yukarı</div>
+            <div class="control-key"><div class="key">↓</div>Aşağı</div>
+            <div class="control-key"><div class="key">←</div>Sol</div>
+            <div class="control-key"><div class="key">→</div>Sağ</div>
+            <div class="control-key"><div class="key">␣</div>Başlat</div>
         </div>
-        <div class="level-info" id="levelInfo">Hedef: 100</div>
+        <div id="message"></div>
     </div>
-    <div class="game-container">
-        <div>
-            <canvas id="gameCanvas" width="400" height="400"></canvas>
-            <div id="message" class="message"></div>
-        </div>
-        <div class="controls-info">
-            <h3>🎮 Kontroller</h3>
-            <div class="key-info">
-                <div class="key">↑</div>
-                <span>Yukarı</span>
-            </div>
-            <div class="key-info">
-                <div class="key">↓</div>
-                <span>Aşağı</span>
-            </div>
-            <div class="key-info">
-                <div class="key">←</div>
-                <span>Sol</span>
-            </div>
-            <div class="key-info">
-                <div class="key">→</div>
-                <span>Sağ</span>
-            </div>
-            <div class="key-info">
-                <div class="key">Space</div>
-                <span>Başlat/Yeniden</span>
-            </div>
-        </div>
-    </div>
-    <div class="controls">
-        <button id="startBtn" class="btn">Başla</button>
-        <button id="pauseBtn" class="btn">Durdur</button>
-        <button id="soundToggle" class="btn">🔊 Ses</button>
-    </div>
-
-    <audio id="eatSound" src="sounds/eat.mp3" preload="auto"></audio>
-    <audio id="gameOverSound" src="sounds/gameover.mp3" preload="auto"></audio>
-    <audio id="levelUpSound" src="sounds/levelup.mp3" preload="auto"></audio>
-    <audio id="hitSound" src="sounds/hit.mp3" preload="auto"></audio>
-    <audio id="bgMusic" src="sounds/background.mp3" preload="auto" loop></audio>
-    <audio id="portalSound" src="sounds/portal.mp3" preload="auto"></audio>
-    <audio id="powerUpSound" src="sounds/powerup.mp3" preload="auto"></audio>
-
-    <script src="sounds.js"></script>
     <script src="game.js"></script>
-    <script src="background.js"></script>
 </body>
 </html> 
