@@ -26,74 +26,10 @@ let glowIncreasing = true;
 let lastMoveTime = 0;
 let lastDirection = { dx: 1, dy: 0 };
 
-// Mobil kontroller için değişkenler
-let touchStartX = 0;
-let touchStartY = 0;
-let lastTouchTime = 0;
-
-// Dokunmatik kontrolleri ekle
-const touchArea = document.getElementById('touchArea');
-
-touchArea.addEventListener('touchstart', handleTouchStart);
-touchArea.addEventListener('touchend', handleTouchEnd);
-
-function handleTouchStart(event) {
-    if (!isMobile()) return; // Sadece mobilde çalışsın
-    touchStartX = event.touches[0].clientX;
-    touchStartY = event.touches[0].clientY;
-}
-
-function handleTouchEnd(event) {
-    if (!isMobile()) return; // Sadece mobilde çalışsın
-    
-    const touchEndX = event.changedTouches[0].clientX;
-    const touchEndY = event.changedTouches[0].clientY;
-    
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-    
-    // Çift dokunma kontrolü (oyunu başlatmak için)
-    const now = Date.now();
-    if (now - lastTouchTime < 300) {
-        if (!isGameRunning || gameOver()) {
-            startGame();
-        }
-        lastTouchTime = 0;
-        return;
-    }
-    lastTouchTime = now;
-
-    if (!isGameRunning || isPaused) return;
-
-    // Minimum kaydırma mesafesi
-    const minSwipeDistance = 30;
-
-    // Yatay hareket daha belirginse
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-        if (deltaX > 0 && dx !== -1) { // Sağa kaydırma
-            dx = 1;
-            dy = 0;
-        } else if (deltaX < 0 && dx !== 1) { // Sola kaydırma
-            dx = -1;
-            dy = 0;
-        }
-    }
-    // Dikey hareket daha belirginse
-    else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
-        if (deltaY > 0 && dy !== -1) { // Aşağı kaydırma
-            dx = 0;
-            dy = 1;
-        } else if (deltaY < 0 && dy !== 1) { // Yukarı kaydırma
-            dx = 0;
-            dy = -1;
-        }
-    }
-}
-
-// Mobil cihaz kontrolü
-function isMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
+// Mobil kontrol değişkenleri
+let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+let lastTapTime = 0;
+let rotationDirection = 1; // 1: saat yönü, -1: saat yönünün tersi
 
 const levels = {
     1: {
@@ -130,17 +66,22 @@ const pauseBtn = document.getElementById('pauseBtn');
 const messageDiv = document.getElementById('message');
 const levelInfo = document.getElementById('levelInfo');
 
-startBtn.addEventListener('click', function() {
-    if (!isGameRunning || gameOver()) {
-        startGame();
-    } else {
-        resetGame();
-        showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Yeniden Başladı', 1000);
-        SoundManager.startBgMusic();
-    }
-});
+startBtn.addEventListener('click', startGame);
 pauseBtn.addEventListener('click', togglePause);
 document.addEventListener('keydown', handleKeyPress);
+
+// Mobil kontrolleri ekle
+if (isMobile) {
+    const tapArea = document.getElementById('tapArea');
+    
+    // Dokunma olayları
+    tapArea.addEventListener('touchstart', handleTap);
+    
+    // Çift dokunmayı engelle
+    tapArea.addEventListener('touchend', (e) => {
+        e.preventDefault();
+    });
+}
 
 function handleKeyPress(event) {
     const key = event.key.toLowerCase();
@@ -162,25 +103,25 @@ function handleKeyPress(event) {
     // Yön tuşları kontrolü
     switch (key) {
         case 'arrowleft':
-            if (dx !== 1) { // Sağa gitmiyorsa sola dönebilir
+            if (dx !== 1 && lastDirection.dx !== 1) { // Sağa gitmiyorsa sola dönebilir
                 dx = -1;
                 dy = 0;
             }
             break;
         case 'arrowup':
-            if (dy !== 1) { // Aşağı gitmiyorsa yukarı dönebilir
+            if (dy !== 1 && lastDirection.dy !== 1) { // Aşağı gitmiyorsa yukarı dönebilir
                 dx = 0;
                 dy = -1;
             }
             break;
         case 'arrowright':
-            if (dx !== -1) { // Sola gitmiyorsa sağa dönebilir
+            if (dx !== -1 && lastDirection.dx !== -1) { // Sola gitmiyorsa sağa dönebilir
                 dx = 1;
                 dy = 0;
             }
             break;
         case 'arrowdown':
-            if (dy !== -1) { // Yukarı gitmiyorsa aşağı dönebilir
+            if (dy !== -1 && lastDirection.dy !== -1) { // Yukarı gitmiyorsa aşağı dönebilir
                 dx = 0;
                 dy = 1;
             }
@@ -205,38 +146,19 @@ function showMessage(text, duration = 1000) {
 }
 
 function startGame() {
-    // Oyunu başlangıç durumuna getir
-    snake = [
-        { x: 10, y: 10 },
-        { x: 9, y: 10 },
-        { x: 8, y: 10 }
-    ];
-    food = { x: 15, y: 15 };
-    obstacles = [];
-    dx = 1;
-    dy = 0;
-    score = 0;
-    currentLevel = 1;
-    gameSpeed = levels[currentLevel].speed;
-    baseSpeed = levels[currentLevel].speed;
-    
-    // Skoru sıfırla
-    document.getElementById('score').textContent = '0';
-    document.getElementById('level').textContent = '1';
-    updateLevelInfo();
-    
-    // Oyun durumunu güncelle
-    isGameRunning = true;
-    isPaused = false;
-    
-    // Mesaj göster ve müziği başlat
-    showMessage(isMobile() ? 'Kaydırarak Oyna!' : 'Bölüm 1', 1000);
-    startBtn.textContent = 'Yeniden Başlat';
-    SoundManager.startBgMusic();
-    
-    // Oyun döngüsünü başlat
-    lastMoveTime = Date.now();
-    requestAnimationFrame(drawGame);
+    if (!isGameRunning) {
+        isGameRunning = true;
+        isPaused = false;
+        resetGame();
+        showMessage('Bölüm 1', 1000);
+        startBtn.textContent = 'Yeniden Başlat';
+        SoundManager.startBgMusic();
+        drawGame();
+    } else {
+        resetGame();
+        showMessage('Yeniden Başladı', 1000);
+        SoundManager.startBgMusic();
+    }
 }
 
 function togglePause() {
@@ -257,7 +179,7 @@ function togglePause() {
 }
 
 function drawGame() {
-    if (!isGameRunning || isPaused) return;
+    if (isPaused) return;
     
     const now = Date.now();
     if (now - lastMoveTime > gameSpeed) {
@@ -272,11 +194,12 @@ function drawGame() {
     drawSnake();
     checkLevelProgress();
     
-    if (!gameOver()) {
-        requestAnimationFrame(drawGame);
-    } else {
+    if (gameOver()) {
         handleGameOver();
+        return;
     }
+    
+    requestAnimationFrame(drawGame);
 }
 
 function updateGlow() {
@@ -438,8 +361,8 @@ function moveSnake() {
         return;
     }
     
-    // Kendine çarpma kontrolü (ilk parça hariç)
-    for (let i = 1; i < snake.length; i++) {
+    // Kendine çarpma kontrolü
+    for (let i = 0; i < snake.length; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             SoundManager.playHit();
             handleGameOver();
@@ -493,7 +416,9 @@ function generateFood() {
 }
 
 function handleGameOver() {
+    // Önce sesi çal
     SoundManager.playGameOver();
+    // Sonra mesajı göster
     showMessage(`Öldün! Skor: ${score} - Bölüm: ${currentLevel}`, 0);
     isGameRunning = false;
     startBtn.textContent = 'Başla';
@@ -579,4 +504,49 @@ function emitBeat() {
 // Oyun başladığında rekor bilgisini göster
 window.onload = function() {
     updateLevelInfo();
-}; 
+};
+
+function handleTap(e) {
+    e.preventDefault();
+    
+    if (!isGameRunning) {
+        startGame();
+        return;
+    }
+
+    const now = Date.now();
+    if (now - lastTapTime < 100) return; // Çok hızlı tıklamaları engelle
+    lastTapTime = now;
+
+    // Flappy Bird tarzı kontrol: Her dokunuşta 90 derece dön
+    rotateSnake();
+}
+
+function rotateSnake() {
+    // Mevcut yönü al
+    const currentDirection = { dx, dy };
+    
+    // Saat yönünde 90 derece döndür
+    if (currentDirection.dx === 1 && currentDirection.dy === 0) {
+        dx = 0;
+        dy = 1;
+    } else if (currentDirection.dx === 0 && currentDirection.dy === 1) {
+        dx = -1;
+        dy = 0;
+    } else if (currentDirection.dx === -1 && currentDirection.dy === 0) {
+        dx = 0;
+        dy = -1;
+    } else if (currentDirection.dx === 0 && currentDirection.dy === -1) {
+        dx = 1;
+        dy = 0;
+    }
+    
+    lastDirection = { dx, dy };
+}
+
+// Oyun hızını mobil için ayarla
+if (isMobile) {
+    baseSpeed = 200; // Mobilde biraz daha yavaş
+    gameSpeed = baseSpeed;
+    speedIncrease = 0.3; // Hız artışını azalt
+} 

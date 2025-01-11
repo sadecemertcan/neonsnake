@@ -2,7 +2,10 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Neon Snake Adventure</title>
     <style>
         body {
@@ -16,6 +19,7 @@
             font-family: 'Courier New', Courier, monospace;
             color: #fff;
             overflow: hidden;
+            touch-action: none;
         }
         #backgroundCanvas {
             position: fixed;
@@ -166,61 +170,46 @@
             background-color: #00f3ff;
             color: #0a0a2a;
         }
-        /* Mobil cihaz kontrolleri */
-        .mobile-controls {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            text-align: center;
-        }
-
-        .touch-area {
-            width: 100%;
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        /* Responsive tasarım */
         @media (max-width: 768px) {
             .game-container {
-                flex-direction: column;
-                padding: 10px;
+                transform: scale(0.8);
+                margin: 0;
             }
-
             .controls-info {
                 display: none;
             }
-
-            canvas#gameCanvas {
-                width: 100%;
-                height: auto;
-                max-width: 400px;
-            }
-
             .info-container {
+                width: 90%;
+                margin: 10px auto;
+            }
+            .mobile-controls {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 20px;
                 width: 100%;
-                max-width: 400px;
             }
-
-            .controls {
-                position: fixed;
-                bottom: 20px;
-                left: 0;
-                right: 0;
-                z-index: 2;
+            .tap-area {
+                width: 100%;
+                height: 100px;
+                background-color: rgba(0, 243, 255, 0.1);
+                border: 2px solid #00f3ff;
+                border-radius: 10px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 10px;
+                font-size: 24px;
+                color: #00f3ff;
+                text-shadow: 0 0 10px #00f3ff;
+                cursor: pointer;
+                user-select: none;
             }
-
-            .touch-area {
-                z-index: 1;
-                pointer-events: auto;
+            .tap-area:active {
+                background-color: rgba(0, 243, 255, 0.3);
+            }
+            .desktop-only {
+                display: none;
             }
         }
     </style>
@@ -239,7 +228,7 @@
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             <div id="message" class="message"></div>
         </div>
-        <div class="controls-info">
+        <div class="controls-info desktop-only">
             <h3>🎮 Kontroller</h3>
             <div class="key-info">
                 <div class="key">↑</div>
@@ -263,7 +252,9 @@
             </div>
         </div>
     </div>
-    <div class="touch-area" id="touchArea"></div>
+    <div class="mobile-controls" id="mobileControls">
+        <div class="tap-area" id="tapArea">Yön değiştirmek için dokun</div>
+    </div>
     <div class="controls">
         <button id="startBtn" class="btn">Başla</button>
         <button id="pauseBtn" class="btn">Durdur</button>
