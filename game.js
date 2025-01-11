@@ -115,6 +115,14 @@ const NEON_COLORS = [
 // Renk değişim zamanı (ms)
 const COLOR_CHANGE_INTERVAL = 2000;
 
+// Arkaplan için neon grid renkleri
+const BACKGROUND_COLORS = {
+    grid: '#0f0',
+    gridOpacity: 0.1,
+    glow: '#0f0',
+    glowOpacity: 0.2
+};
+
 // Canvas ve Ses Öğeleri
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -450,8 +458,50 @@ function draw() {
 }
 
 function drawBackground() {
+    // Siyah arkaplan
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Neon grid çizgileri
+    const gridSize = 20;
+    ctx.strokeStyle = BACKGROUND_COLORS.grid;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = BACKGROUND_COLORS.gridOpacity;
+    
+    // Yatay çizgiler
+    for (let y = 0; y <= canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+    
+    // Dikey çizgiler
+    for (let x = 0; x <= canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Neon glow efekti
+    ctx.shadowBlur = 30;
+    ctx.shadowColor = BACKGROUND_COLORS.glow;
+    ctx.globalAlpha = BACKGROUND_COLORS.glowOpacity;
+    ctx.strokeStyle = BACKGROUND_COLORS.glow;
+    ctx.lineWidth = 2;
+    
+    // Çapraz glow çizgileri
+    for (let i = 0; i < canvas.width + canvas.height; i += 100) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(i, 0);
+        ctx.stroke();
+    }
+    
+    // Efektleri sıfırla
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
 }
 
 function drawObstacles() {

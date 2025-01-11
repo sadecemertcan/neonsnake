@@ -52,6 +52,7 @@
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            animation: neonPulse 2s infinite;
         }
 
         #game-info {
@@ -72,6 +73,7 @@
             background-color: var(--bg-color);
             border-radius: 3px;
             backdrop-filter: blur(5px);
+            animation: scorePulse 2s infinite;
         }
 
         #power-up {
@@ -94,7 +96,7 @@
 
         #gameCanvas {
             border: 2px solid var(--primary-color);
-            box-shadow: 0 0 20px var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color), inset 0 0 10px var(--primary-color);
             background-color: #000;
             image-rendering: pixelated;
             max-width: 100%;
@@ -267,6 +269,32 @@
                 display: block;
             }
         }
+
+        @keyframes neonPulse {
+            0% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 15px var(--primary-color); }
+            50% { box-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color); }
+            100% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 15px var(--primary-color); }
+        }
+
+        .neon-text {
+            text-shadow: 0 0 5px var(--primary-color),
+                         0 0 10px var(--primary-color),
+                         0 0 15px var(--primary-color),
+                         0 0 20px var(--primary-color);
+            animation: textPulse 2s infinite;
+        }
+
+        @keyframes textPulse {
+            0% { text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
+            50% { text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color); }
+            100% { text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
+        }
+
+        @keyframes scorePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -274,15 +302,15 @@
     <button id="language-switch">EN</button>
     <div id="game-container">
         <div id="game-info">
-            <div id="score" class="glitch">Skor: 0</div>
-            <div id="level" class="glitch">Seviye: 1</div>
-            <div id="animal" class="glitch">Yılan</div>
+            <div id="score" class="glitch neon-text">Skor: 0</div>
+            <div id="level" class="glitch neon-text">Seviye: 1</div>
+            <div id="animal" class="glitch neon-text">Yılan</div>
         </div>
         <div id="power-up"></div>
         <canvas id="gameCanvas" width="450" height="450"></canvas>
         <div id="message"></div>
         <div id="controls">
-            <p>Kontroller</p>
+            <p class="neon-text">Kontroller</p>
             <p class="desktop-controls">↑ ↓ ← → : Hareket</p>
             <p class="mobile-controls">Kaydırarak Hareket Et</p>
         </div>
