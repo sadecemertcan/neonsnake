@@ -25,6 +25,55 @@ let soundToggle = document.getElementById('soundToggle');
 let startBtn = document.getElementById('startBtn');
 let pauseBtn = document.getElementById('pauseBtn');
 
+// Klavye kontrolleri
+document.addEventListener('keydown', handleKeyPress);
+
+function handleKeyPress(event) {
+    if (!isGameRunning && event.code === 'Space') {
+        startGame();
+        return;
+    }
+
+    if (!isGameRunning || isPaused) return;
+
+    switch (event.code) {
+        case 'ArrowUp':
+            if (dy === 0) {
+                dx = 0;
+                dy = -10;
+            }
+            break;
+        case 'ArrowDown':
+            if (dy === 0) {
+                dx = 0;
+                dy = 10;
+            }
+            break;
+        case 'ArrowLeft':
+            if (dx === 0) {
+                dx = -10;
+                dy = 0;
+            }
+            break;
+        case 'ArrowRight':
+            if (dx === 0) {
+                dx = 10;
+                dy = 0;
+            }
+            break;
+        case 'Space':
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Devam Et' : 'Durdur';
+            if (isPaused) {
+                if (isSoundOn) bgMusic.pause();
+            } else {
+                if (isSoundOn) bgMusic.play();
+                gameLoop();
+            }
+            break;
+    }
+}
+
 // Buton kontrolleri
 startBtn.addEventListener('click', () => {
     if (!isGameRunning) {
@@ -60,51 +109,13 @@ soundToggle.addEventListener('click', () => {
     }
 });
 
-// Dokunmatik kontrol
-canvas.addEventListener('touchstart', handleTouch, { passive: false });
-canvas.addEventListener('click', handleTouch);
-
-// Varsayılan dokunmatik davranışları engelle
-document.addEventListener('touchmove', function(e) {
-    e.preventDefault();
-}, { passive: false });
-
-document.addEventListener('touchstart', function(e) {
-    if (e.target !== canvas) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-function handleTouch(event) {
-    event.preventDefault();
-    
-    if (!isGameRunning) {
-        startGame();
-        return;
-    }
-    
-    // Yılanın mevcut yönüne göre saat yönünde döndür
-    if (dx === 10 && dy === 0) { // Sağa gidiyorsa
-        dx = 0;
-        dy = 10; // Aşağı çevir
-    } else if (dx === 0 && dy === 10) { // Aşağı gidiyorsa
-        dx = -10;
-        dy = 0; // Sola çevir
-    } else if (dx === -10 && dy === 0) { // Sola gidiyorsa
-        dx = 0;
-        dy = -10; // Yukarı çevir
-    } else if (dx === 0 && dy === -10) { // Yukarı gidiyorsa
-        dx = 10;
-        dy = 0; // Sağa çevir
-    }
-}
-
 // Oyunu başlat
 function startGame() {
     if (!isGameRunning) {
         resetGame();
         isGameRunning = true;
         isPaused = false;
+        startBtn.textContent = 'Yeniden Başlat';
         if (isSoundOn) bgMusic.play();
         gameLoop();
     }
@@ -314,19 +325,4 @@ function gameOver() {
     
     messageDiv.textContent = `Öldün! Skor: ${score} - Bölüm: ${currentLevel}`;
     messageDiv.style.display = 'block';
-}
-
-// Oyunu başlat
-canvas.addEventListener('click', startGame);
-
-// Mobil cihaz kontrolü
-function isMobileDevice() {
-    return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
-}
-
-// Mobil cihaz ise ek kontroller ekle
-if (isMobileDevice()) {
-    document.addEventListener('touchmove', function(e) {
-        e.preventDefault();
-    }, { passive: false });
 } 
