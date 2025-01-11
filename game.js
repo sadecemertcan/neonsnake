@@ -31,7 +31,8 @@ let gameState = {
     gameSpeed: GAME_CONFIG.INITIAL_SPEED,
     gameLoop: null,
     lastRenderTime: 0,
-    gameStarted: false
+    gameStarted: false,
+    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 };
 
 // Yılan Başlangıç Pozisyonu
@@ -60,6 +61,7 @@ function createFood() {
 // Oyun Başlatma
 function startGame() {
     gameState = {
+        ...gameState,
         snake: initializeSnake(),
         food: {},
         obstacles: [],
@@ -87,7 +89,7 @@ function gameLoop() {
     updateGame();
     draw();
     
-    setTimeout(gameLoop, gameState.gameSpeed);
+    gameState.gameLoop = setTimeout(gameLoop, gameState.gameSpeed);
 }
 
 // Oyun Mantığı Güncelleme
@@ -159,30 +161,24 @@ function draw() {
 // Oyun Bitişi
 function gameOver() {
     gameState.gameStarted = false;
+    if (gameState.gameLoop) {
+        clearTimeout(gameState.gameLoop);
+        gameState.gameLoop = null;
+    }
     const message = document.getElementById('message');
-    message.textContent = `Oyun Bitti!\nSkor: ${gameState.score}\nTekrar başlamak için SPACE tuşuna basın`;
+    message.textContent = gameState.isMobile ? 
+        `Oyun Bitti!\nSkor: ${gameState.score}\nTekrar başlamak için dokun` :
+        `Oyun Bitti!\nSkor: ${gameState.score}\nTekrar başlamak için SPACE tuşuna basın`;
     message.style.display = 'block';
 }
 
-// Klavye Kontrolleri
-document.addEventListener('keydown', handleKeyPress);
-
-function handleKeyPress(event) {
-    if (!gameState.gameStarted && event.code === 'Space') {
+// Yön Değiştirme
+function changeDirection(newDirection) {
+    if (!gameState.gameStarted) {
         startGame();
         return;
     }
     
-    if (!gameState.gameStarted) return;
-    
-    const keyMappings = {
-        'ArrowUp': { x: 0, y: -1 },
-        'ArrowDown': { x: 0, y: 1 },
-        'ArrowLeft': { x: -1, y: 0 },
-        'ArrowRight': { x: 1, y: 0 }
-    };
-    
-    const newDirection = keyMappings[event.key];
     if (!newDirection) return;
     
     // Ters yöne gitmeyi engelle
@@ -194,10 +190,30 @@ function handleKeyPress(event) {
     gameState.nextDirection = newDirection;
 }
 
+// Klavye Kontrolleri
+document.addEventListener('keydown', handleKeyPress);
+
+function handleKeyPress(event) {
+    if (!gameState.gameStarted && event.code === 'Space') {
+        startGame();
+        return;
+    }
+    
+    const keyMappings = {
+        'ArrowUp': { x: 0, y: -1 },
+        'ArrowDown': { x: 0, y: 1 },
+        'ArrowLeft': { x: -1, y: 0 },
+        'ArrowRight': { x: 1, y: 0 }
+    };
+    
+    changeDirection(keyMappings[event.key]);
+}
+
 // Dokunmatik Kontroller
 const touchButtons = document.querySelectorAll('.touch-btn');
 touchButtons.forEach(button => {
-    button.addEventListener('click', () => {
+    button.addEventListener('touchstart', (e) => {
+        e.preventDefault();
         const direction = button.dataset.direction;
         const directionMap = {
             'up': { x: 0, y: -1 },
@@ -206,26 +222,55 @@ touchButtons.forEach(button => {
             'right': { x: 1, y: 0 }
         };
         
-        if (!gameState.gameStarted) {
-            startGame();
-            return;
-        }
-        
-        const newDirection = directionMap[direction];
-        if (!newDirection) return;
-        
-        if (newDirection.x === -gameState.direction.x || 
-            newDirection.y === -gameState.direction.y) {
-            return;
-        }
-        
-        gameState.nextDirection = newDirection;
+        changeDirection(directionMap[direction]);
     });
+});
+
+// Kaydırma Kontrolleri
+let touchStartX = 0;
+let touchStartY = 0;
+const MIN_SWIPE_DISTANCE = 30;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, false);
+
+document.addEventListener('touchmove', (e) => {
+    if (!touchStartX || !touchStartY) return;
+    
+    const xDiff = touchStartX - e.touches[0].clientX;
+    const yDiff = touchStartY - e.touches[0].clientY;
+    
+    if (Math.abs(xDiff) > Math.abs(yDiff)) {
+        if (Math.abs(xDiff) < MIN_SWIPE_DISTANCE) return;
+        changeDirection(xDiff > 0 ? { x: -1, y: 0 } : { x: 1, y: 0 });
+    } else {
+        if (Math.abs(yDiff) < MIN_SWIPE_DISTANCE) return;
+        changeDirection(yDiff > 0 ? { x: 0, y: -1 } : { x: 0, y: 1 });
+    }
+    
+    touchStartX = 0;
+    touchStartY = 0;
+}, false);
+
+document.addEventListener('touchend', () => {
+    touchStartX = 0;
+    touchStartY = 0;
+}, false);
+
+// Ekrana dokunma ile başlatma
+canvas.addEventListener('click', () => {
+    if (!gameState.gameStarted) {
+        startGame();
+    }
 });
 
 // Başlangıç mesajını göster
 const message = document.getElementById('message');
-message.textContent = 'Başlamak için SPACE tuşuna basın\nveya ekrana dokunun';
+message.textContent = gameState.isMobile ? 
+    'Başlamak için dokun' :
+    'Başlamak için SPACE tuşuna basın';
 message.style.display = 'block';
 
 // İlk çizimi yap
