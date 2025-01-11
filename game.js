@@ -25,6 +25,8 @@ let glowIntensity = 0;
 let glowIncreasing = true;
 let lastMoveTime = 0;
 let lastDirection = { dx: 1, dy: 0 };
+let touchStartX = 0;
+let touchStartY = 0;
 
 const levels = {
     1: {
@@ -70,53 +72,73 @@ const centerButton = document.getElementById('centerButton');
 
 startBtn.addEventListener('click', startGame);
 pauseBtn.addEventListener('click', togglePause);
-document.addEventListener('keydown', handleKeyPress);
 
-function handleKeyPress(event) {
-    const key = event.key.toLowerCase();
-    
-    // Space tuşu kontrolü
-    if (key === ' ' || key === 'spacebar') {
+// Dokunmatik kontroller için event listener'lar
+canvas.addEventListener('touchstart', handleTouchStart);
+canvas.addEventListener('touchmove', handleTouchMove);
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+
+    // Oyun başlamamışsa veya bitmişse, dokunuşla başlat
+    if (!isGameRunning || gameOver()) {
         startGame();
         return;
     }
+}
 
-    if (!isGameRunning || isPaused) {
-        // Oyun bittiyse veya duraklatıldıysa space tuşu ile başlat
-        if (key === ' ' || key === 'spacebar') {
-            startGame();
-        }
-        return;
-    }
+function handleTouchMove(e) {
+    if (!isGameRunning || isPaused) return;
+    
+    e.preventDefault();
+    const touch = e.touches[0];
+    const touchEndX = touch.clientX;
+    const touchEndY = touch.clientY;
 
-    // Yön tuşları kontrolü
-    switch (key) {
-        case 'arrowleft':
-            if (dx !== 1 && lastDirection.dx !== 1) { // Sağa gitmiyorsa sola dönebilir
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    // Minimum kaydırma mesafesi
+    const minSwipeDistance = 30;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Yatay hareket
+        if (Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0 && dx !== -1 && lastDirection.dx !== -1) {
+                // Sağa
+                dx = 1;
+                dy = 0;
+            } else if (deltaX < 0 && dx !== 1 && lastDirection.dx !== 1) {
+                // Sola
                 dx = -1;
                 dy = 0;
             }
-            break;
-        case 'arrowup':
-            if (dy !== 1 && lastDirection.dy !== 1) { // Aşağı gitmiyorsa yukarı dönebilir
+        }
+    } else {
+        // Dikey hareket
+        if (Math.abs(deltaY) > minSwipeDistance) {
+            if (deltaY > 0 && dy !== -1 && lastDirection.dy !== -1) {
+                // Aşağı
+                dx = 0;
+                dy = 1;
+            } else if (deltaY < 0 && dy !== 1 && lastDirection.dy !== 1) {
+                // Yukarı
                 dx = 0;
                 dy = -1;
             }
-            break;
-        case 'arrowright':
-            if (dx !== -1 && lastDirection.dx !== -1) { // Sola gitmiyorsa sağa dönebilir
-                dx = 1;
-                dy = 0;
-            }
-            break;
-        case 'arrowdown':
-            if (dy !== -1 && lastDirection.dy !== -1) { // Yukarı gitmiyorsa aşağı dönebilir
-                dx = 0;
-                dy = 1;
-            }
-            break;
+        }
     }
+
+    // Yeni başlangıç noktası
+    touchStartX = touchEndX;
+    touchStartY = touchEndY;
 }
+
+// Klavye kontrollerini kaldır
+document.removeEventListener('keydown', handleKeyPress);
 
 function updateLevelInfo() {
     const level = levels[currentLevel];
@@ -492,76 +514,117 @@ function emitBeat() {
 
 // Mobil kontrol event listener'ları
 function addMobileControls() {
-    // Yön tuşları
-    upButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (dy !== 1 && lastDirection.dy !== 1) {
-            dx = 0;
-            dy = -1;
-        }
-    });
+    // Yön tuşları için hem touchstart hem de touchend olaylarını dinle
+    const buttons = {
+        up: upButton,
+        down: downButton,
+        left: leftButton,
+        right: rightButton,
+        center: centerButton
+    };
 
-    downButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (dy !== -1 && lastDirection.dy !== -1) {
-            dx = 0;
-            dy = 1;
-        }
-    });
+    // Her buton için dokunma olaylarını ekle
+    Object.entries(buttons).forEach(([direction, button]) => {
+        // touchstart olayı
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleMobileControl(direction);
+            button.style.backgroundColor = 'rgba(0, 243, 255, 0.7)';
+        });
 
-    leftButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (dx !== 1 && lastDirection.dx !== 1) {
-            dx = -1;
-            dy = 0;
-        }
-    });
+        // touchend olayı
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            button.style.backgroundColor = 'rgba(0, 243, 255, 0.2)';
+        });
 
-    rightButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (dx !== -1 && lastDirection.dx !== -1) {
-            dx = 1;
-            dy = 0;
-        }
+        // touchcancel olayı
+        button.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            button.style.backgroundColor = 'rgba(0, 243, 255, 0.2)';
+        });
     });
+}
 
-    // Orta buton (Space tuşu işlevi)
-    centerButton.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (!isGameRunning || gameOver()) {
-            startGame();
-        }
-    });
+// Mobil kontrolleri işle
+function handleMobileControl(direction) {
+    if (!isGameRunning && direction === 'center') {
+        startGame();
+        return;
+    }
+
+    if (!isGameRunning || isPaused) return;
+
+    switch (direction) {
+        case 'up':
+            if (dy !== 1 && lastDirection.dy !== 1) {
+                dx = 0;
+                dy = -1;
+            }
+            break;
+        case 'down':
+            if (dy !== -1 && lastDirection.dy !== -1) {
+                dx = 0;
+                dy = 1;
+            }
+            break;
+        case 'left':
+            if (dx !== 1 && lastDirection.dx !== 1) {
+                dx = -1;
+                dy = 0;
+            }
+            break;
+        case 'right':
+            if (dx !== -1 && lastDirection.dx !== -1) {
+                dx = 1;
+                dy = 0;
+            }
+            break;
+        case 'center':
+            if (gameOver()) {
+                startGame();
+            } else if (isGameRunning) {
+                togglePause();
+            }
+            break;
+    }
 }
 
 // Mobil cihaz kontrolü
 function isMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
 }
 
 // Oyun başladığında mobil kontrolleri ekle
 window.onload = function() {
     updateLevelInfo();
     if (isMobile()) {
-        addMobileControls();
         // Canvas boyutunu mobil ekrana göre ayarla
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
-        const size = Math.min(screenWidth * 0.9, screenHeight * 0.6);
-        canvas.style.width = size + 'px';
-        canvas.style.height = size + 'px';
+        resizeGameForMobile();
     }
 };
 
-// Ekran döndürme olayını dinle
+// Mobil için oyun alanını yeniden boyutlandır
+function resizeGameForMobile() {
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const gameContainer = document.querySelector('.game-container');
+    const size = Math.min(screenWidth * 0.95, 400);
+
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    gameContainer.style.width = size + 'px';
+}
+
+// Ekran döndürme ve yeniden boyutlandırma olaylarını dinle
 window.addEventListener('orientationchange', () => {
     if (isMobile()) {
-        setTimeout(() => {
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-            const size = Math.min(screenWidth * 0.9, screenHeight * 0.6);
-            canvas.style.width = size + 'px';
-            canvas.style.height = size + 'px';
-        }, 100);
+        setTimeout(resizeGameForMobile, 100);
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (isMobile()) {
+        resizeGameForMobile();
     }
 }); 

@@ -205,30 +205,78 @@
         @media (max-width: 768px) {
             body {
                 padding: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-height: 100vh;
+                justify-content: flex-start;
             }
 
             .game-container {
                 flex-direction: column;
-                transform: scale(0.8);
-                transform-origin: top center;
+                transform: none;
+                width: 100%;
+                max-width: 100vw;
+                margin: 0;
+                padding: 0;
+            }
+
+            canvas#gameCanvas {
+                width: 100vw;
+                height: 100vw;
+                max-width: 400px;
+                max-height: 400px;
             }
 
             .controls-info {
                 display: none;
             }
 
+            .info-container {
+                width: 100%;
+                max-width: 400px;
+                margin-bottom: 10px;
+            }
+
+            .controls {
+                margin: 10px 0;
+                width: 100%;
+                max-width: 400px;
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+            }
+
             .mobile-controls {
                 display: block;
-            }
-
-            .info-container {
-                width: 90%;
+                position: relative;
+                bottom: 0;
+                left: 0;
+                transform: none;
+                width: 100%;
                 max-width: 400px;
+                margin-top: 20px;
+                padding-bottom: 20px;
             }
 
-            canvas {
-                max-width: 100%;
-                height: auto;
+            .direction-pad {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                gap: 10px;
+                max-width: 300px;
+                margin: 0 auto;
+            }
+
+            .direction-button {
+                width: 100%;
+                height: 60px;
+                font-size: 28px;
+                border-width: 3px;
+            }
+
+            .direction-button:active {
+                background-color: rgba(0, 243, 255, 0.7);
+                transform: scale(0.95);
             }
         }
 
@@ -255,29 +303,6 @@
             <canvas id="gameCanvas" width="400" height="400"></canvas>
             <div id="message" class="message"></div>
         </div>
-        <div class="controls-info">
-            <h3>🎮 Kontroller</h3>
-            <div class="key-info">
-                <div class="key">↑</div>
-                <span>Yukarı</span>
-            </div>
-            <div class="key-info">
-                <div class="key">↓</div>
-                <span>Aşağı</span>
-            </div>
-            <div class="key-info">
-                <div class="key">←</div>
-                <span>Sol</span>
-            </div>
-            <div class="key-info">
-                <div class="key">→</div>
-                <span>Sağ</span>
-            </div>
-            <div class="key-info">
-                <div class="key">Space</div>
-                <span>Başlat/Yeniden</span>
-            </div>
-        </div>
     </div>
     <div class="controls">
         <button id="startBtn" class="btn">Başla</button>
@@ -290,20 +315,6 @@
     <audio id="levelUpSound" src="sounds/levelup.mp3" preload="auto"></audio>
     <audio id="hitSound" src="sounds/hit.mp3" preload="auto"></audio>
     <audio id="bgMusic" src="sounds/background.mp3" preload="auto" loop></audio>
-
-    <div class="mobile-controls">
-        <div class="direction-pad">
-            <div></div>
-            <div class="direction-button" id="upButton">↑</div>
-            <div></div>
-            <div class="direction-button" id="leftButton">←</div>
-            <div class="direction-button" id="centerButton">•</div>
-            <div class="direction-button" id="rightButton">→</div>
-            <div></div>
-            <div class="direction-button" id="downButton">↓</div>
-            <div></div>
-        </div>
-    </div>
 
     <!-- PWA için manifest ve service worker -->
     <link rel="manifest" href="manifest.json">
