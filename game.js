@@ -901,25 +901,7 @@ function shootFireball() {
 
 // Renk değiştirme işleyicisi
 function initializeColorPicker() {
-    const buttons = document.querySelectorAll('.color-btn');
-    buttons.forEach(button => {
-        button.addEventListener('click', () => {
-            const color = button.dataset.color;
-            ANIMALS[gameState.currentAnimal].color = color;
-            
-            // Aktif butonu güncelle
-            buttons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
-            
-            // UI'ı güncelle
-            updateAnimalUI();
-        });
-        
-        // İlk rengi aktif olarak işaretle
-        if (button.dataset.color === ANIMALS[gameState.currentAnimal].color) {
-            button.classList.add('active');
-        }
-    });
+    // Bu fonksiyonu boş bırak veya tamamen kaldır
 }
 
 // Oyunu başlatmadan önce renk seçiciyi başlat
