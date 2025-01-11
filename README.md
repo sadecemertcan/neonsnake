@@ -3,7 +3,7 @@
 <div align="center">
   <img src="screenshots/gameplay.png" alt="Oyun Ekranı" width="600"/>
   
-  [🕹️ Hemen Oyna](https://sadecemertcan.github.io/neon-snake) | [🌟 Yüksek Skorlar](https://sadecemertcan.github.io/neon-snake/scores) | [🎵 Ses Açık/Kapalı](https://sadecemertcan.github.io/neon-snake)
+  [🕹️ Hemen Oyna](https://sadecemertcan.github.io/neon-snake) | [🎵 Ses Açık/Kapalı](https://sadecemertcan.github.io/neon-snake)
 </div>
 
 ## 📝 Oyun Hakkında
@@ -50,7 +50,6 @@ Modern ve neon tarzında tasarlanmış, klasik yılan oyununun gelişmiş bir ve
 <div align="center">
   <img src="screenshots/level1.png" alt="Seviye 1" width="200"/>
   <img src="screenshots/level2.png" alt="Seviye 2" width="200"/>
-  <img src="screenshots/level3.png" alt="Seviye 3" width="200"/>
 </div>
 
 ## 🔄 Güncellemeler
