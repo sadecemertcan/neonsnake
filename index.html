@@ -31,15 +31,6 @@
             text-shadow: 0 0 5px var(--primary-color);
             overflow: hidden;
             touch-action: none;
-            overscroll-behavior: contain;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            -webkit-overflow-scrolling: none;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            animation: backgroundPulse 4s infinite;
         }
 
         #game-container {
@@ -53,9 +44,6 @@
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-            animation: neonPulse 2s infinite;
-            max-width: 90vw;
-            max-height: 90vh;
         }
 
         #game-info {
@@ -76,7 +64,6 @@
             background-color: var(--bg-color);
             border-radius: 3px;
             backdrop-filter: blur(5px);
-            animation: scorePulse 2s infinite;
         }
 
         #power-up {
@@ -99,13 +86,11 @@
 
         #gameCanvas {
             border: 2px solid var(--primary-color);
-            box-shadow: 0 0 20px var(--primary-color), inset 0 0 10px var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color);
             background-color: #000;
             image-rendering: pixelated;
-            max-width: 400px;
-            max-height: 400px;
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            height: auto;
         }
 
         #message {
@@ -162,7 +147,6 @@
             background: var(--glass-bg);
             backdrop-filter: blur(5px);
             border-radius: 3px;
-            display: none;
         }
 
         .color-buttons {
@@ -207,23 +191,23 @@
         @media (max-width: 768px) {
             #game-container {
                 padding: 10px;
-                max-width: 95vw;
-                max-height: 95vh;
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                justify-content: space-between;
             }
 
             #game-info {
                 font-size: 24px;
                 gap: 15px;
-            }
-
-            #score, #level, #animal {
-                padding: 8px 20px;
-                font-weight: bold;
+                padding: 10px;
             }
 
             #gameCanvas {
-                max-width: 350px;
-                max-height: 350px;
+                width: 100%;
+                height: auto;
+                max-height: 60vh;
+                touch-action: none;
             }
 
             #message {
@@ -236,16 +220,51 @@
                 font-size: 20px;
                 margin-top: 15px;
                 padding: 20px;
+                width: 90%;
             }
 
-            .mobile-controls {
-                font-size: 22px;
-                font-weight: bold;
-                margin: 10px 0;
+            #color-picker {
+                font-size: 20px;
+                margin-top: 15px;
+                padding: 20px;
+                width: 90%;
+            }
+
+            .color-btn {
+                width: 40px;
+                height: 40px;
             }
 
             .desktop-controls {
                 display: none;
+            }
+
+            .mobile-controls {
+                font-size: 22px;
+                margin: 10px 0;
+            }
+
+            #language-switch {
+                font-size: 20px;
+                padding: 10px 20px;
+            }
+        }
+
+        @media (hover: none) {
+            body {
+                position: fixed;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                touch-action: none;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            #game-container {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
             }
         }
 
@@ -274,73 +293,36 @@
                 display: block;
             }
         }
-
-        @keyframes neonPulse {
-            0% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 15px var(--primary-color); }
-            50% { box-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color); }
-            100% { box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color), 0 0 15px var(--primary-color); }
-        }
-
-        .neon-text {
-            text-shadow: 0 0 5px var(--primary-color),
-                         0 0 10px var(--primary-color),
-                         0 0 15px var(--primary-color),
-                         0 0 20px var(--primary-color);
-            animation: textPulse 2s infinite;
-        }
-
-        @keyframes textPulse {
-            0% { text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
-            50% { text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color); }
-            100% { text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color); }
-        }
-
-        @keyframes scorePulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        @keyframes backgroundPulse {
-            0% { background-color: rgba(0, 0, 0, 1); }
-            50% { background-color: rgba(0, 50, 0, 0.8); }
-            100% { background-color: rgba(0, 0, 0, 1); }
-        }
-
-        @keyframes neonFlash {
-            0% { opacity: 0; }
-            50% { opacity: 0.5; }
-            100% { opacity: 0; }
-        }
-
-        .neon-flash {
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(0,255,0,0.2) 0%, rgba(0,0,0,0) 70%);
-            pointer-events: none;
-            animation: neonFlash 3s infinite;
-            z-index: -1;
-        }
     </style>
 </head>
 <body>
-    <div class="neon-flash"></div>
     <div class="swipe-overlay"></div>
     <button id="language-switch">EN</button>
     <div id="game-container">
         <div id="game-info">
-            <div id="score" class="glitch neon-text">Skor: 0</div>
-            <div id="level" class="glitch neon-text">Seviye: 1</div>
-            <div id="animal" class="glitch neon-text">Yılan</div>
+            <div id="score" class="glitch">Skor: 0</div>
+            <div id="level" class="glitch">Seviye: 1</div>
+            <div id="animal" class="glitch">Yılan</div>
         </div>
         <div id="power-up"></div>
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
         <div id="message"></div>
         <div id="controls">
-            <p class="neon-text">Kontroller</p>
+            <p>Kontroller</p>
             <p class="desktop-controls">↑ ↓ ← → : Hareket</p>
+            <p class="desktop-controls">F : Özel Yetenek</p>
             <p class="mobile-controls">Kaydırarak Hareket Et</p>
+            <p class="mobile-controls">Ekrana Dokun: Özel Yetenek</p>
+        </div>
+        <div id="color-picker">
+            <p>Yılan Rengi</p>
+            <div class="color-buttons">
+                <button class="color-btn" data-color="#0f0" style="background-color: #0f0"></button>
+                <button class="color-btn" data-color="#f0f" style="background-color: #f0f"></button>
+                <button class="color-btn" data-color="#0ff" style="background-color: #0ff"></button>
+                <button class="color-btn" data-color="#ff0" style="background-color: #ff0"></button>
+                <button class="color-btn" data-color="#f00" style="background-color: #f00"></button>
+            </div>
         </div>
     </div>
 
