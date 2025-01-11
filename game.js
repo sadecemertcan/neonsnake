@@ -15,6 +15,7 @@ let lastRenderTime = 0;
 let gameSpeed = 10;
 let levelTarget = 100;
 let highScore = localStorage.getItem('highScore') || 0;
+let gameLoop;
 
 // DOM elementleri
 let messageDiv = document.getElementById('message');
@@ -50,8 +51,49 @@ document.addEventListener('touchstart', function(e) {
     }
 }, { passive: false });
 
+// Başlatma işleyicisi
+function startGameHandler(event) {
+    if (event) event.preventDefault();
+    if (!isGameRunning) {
+        startGame();
+    } else {
+        resetGame();
+        startGame();
+    }
+}
+
+// Duraklatma işleyicisi
+function pauseGameHandler(event) {
+    if (event) event.preventDefault();
+    if (!isGameRunning) return;
+    
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? 'Devam Et' : 'Durdur';
+    
+    if (isPaused) {
+        if (isSoundOn) bgMusic.pause();
+        cancelAnimationFrame(gameLoop);
+    } else {
+        if (isSoundOn) bgMusic.play();
+        gameLoop = requestAnimationFrame(update);
+    }
+}
+
+// Ses kontrolü işleyicisi
+function toggleSound(event) {
+    if (event) event.preventDefault();
+    isSoundOn = !isSoundOn;
+    soundToggle.textContent = isSoundOn ? '🔊 Ses' : '🔈 Ses';
+    if (isSoundOn) {
+        if (isGameRunning && !isPaused) bgMusic.play();
+    } else {
+        bgMusic.pause();
+    }
+}
+
+// Oyun alanı dokunma kontrolü
 function handleTouch(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     
     if (!isGameRunning) {
         startGame();
@@ -76,59 +118,52 @@ function handleTouch(event) {
     }
 }
 
-// Başlatma işleyicisi
-function startGameHandler(event) {
-    event.preventDefault();
-    if (!isGameRunning) {
-        startGame();
-        startBtn.textContent = 'Yeniden Başlat';
-    } else {
-        resetGame();
-    }
-}
-
-// Duraklatma işleyicisi
-function pauseGameHandler(event) {
-    event.preventDefault();
-    if (!isGameRunning) return;
-    
-    isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? 'Devam Et' : 'Durdur';
-    
-    if (isPaused) {
-        if (isSoundOn) bgMusic.pause();
-    } else {
-        if (isSoundOn) bgMusic.play();
-        gameLoop();
-    }
-}
-
-// Ses kontrolü işleyicisi
-function toggleSound(event) {
-    event.preventDefault();
-    isSoundOn = !isSoundOn;
-    soundToggle.textContent = isSoundOn ? '🔊 Ses' : '🔈 Ses';
-    if (isSoundOn) {
-        if (isGameRunning && !isPaused) bgMusic.play();
-    } else {
-        bgMusic.pause();
-    }
-}
-
 // Oyunu başlat
 function startGame() {
-    if (!isGameRunning) {
-        resetGame();
-        isGameRunning = true;
-        isPaused = false;
-        startBtn.textContent = 'Yeniden Başlat';
-        if (isSoundOn) bgMusic.play();
-        gameLoop();
+    if (isGameRunning) return;
+    
+    resetGame();
+    isGameRunning = true;
+    isPaused = false;
+    startBtn.textContent = 'Yeniden Başlat';
+    
+    if (isSoundOn) {
+        bgMusic.currentTime = 0;
+        bgMusic.play();
     }
+    
+    generateFood();
+    generateObstacles();
+    lastRenderTime = performance.now();
+    gameLoop = requestAnimationFrame(update);
+}
+
+// Ana oyun döngüsü
+function update(currentTime) {
+    if (!isGameRunning || isPaused) {
+        return;
+    }
+    
+    gameLoop = requestAnimationFrame(update);
+    
+    const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
+    if (secondsSinceLastRender < 1 / gameSpeed) {
+        return;
+    }
+    
+    lastRenderTime = currentTime;
+    
+    moveSnake();
+    checkCollision();
+    drawGame();
 }
 
 // Oyunu sıfırla
 function resetGame() {
+    if (gameLoop) {
+        cancelAnimationFrame(gameLoop);
+    }
+    
     score = 0;
     currentLevel = 1;
     levelTarget = 100;
@@ -136,11 +171,18 @@ function resetGame() {
     dx = 10;
     dy = 0;
     snake = [{x: 200, y: 200}];
-    generateFood();
-    generateObstacles();
+    obstacles = [];
+    isGameRunning = false;
+    isPaused = false;
+    
+    if (isSoundOn) {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+    }
+    
+    messageDiv.style.display = 'none';
     updateScore();
     updateLevel();
-    messageDiv.style.display = 'none';
 }
 
 // Yemeği rastgele konumlandır
@@ -197,66 +239,6 @@ function generateObstacles() {
 // Çarpışma kontrolü
 function isColliding(pos1, pos2) {
     return pos1.x === pos2.x && pos1.y === pos2.y;
-}
-
-// Oyun döngüsü
-function gameLoop(currentTime) {
-    if (!isGameRunning || isPaused) return;
-    
-    window.requestAnimationFrame(gameLoop);
-    
-    const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
-    if (secondsSinceLastRender < 1 / gameSpeed) return;
-    
-    lastRenderTime = currentTime;
-    
-    moveSnake();
-    checkCollision();
-    drawGame();
-}
-
-// Yılanı hareket ettir
-function moveSnake() {
-    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-    snake.unshift(head);
-    
-    if (isColliding(head, food)) {
-        score += 10;
-        updateScore();
-        checkLevelProgress();
-        generateFood();
-        SoundManager.playEat();
-    } else {
-        snake.pop();
-    }
-}
-
-// Çarpışmaları kontrol et
-function checkCollision() {
-    const head = snake[0];
-    
-    // Duvarlarla çarpışma
-    if (head.x < 0 || head.x >= canvas.width || 
-        head.y < 0 || head.y >= canvas.height) {
-        gameOver();
-        return;
-    }
-    
-    // Yılanın kendisiyle çarpışması
-    for (let i = 1; i < snake.length; i++) {
-        if (isColliding(head, snake[i])) {
-            gameOver();
-            return;
-        }
-    }
-    
-    // Engellerle çarpışma
-    for (let obstacle of obstacles) {
-        if (isColliding(head, obstacle)) {
-            gameOver();
-            return;
-        }
-    }
 }
 
 // Oyunu çiz
