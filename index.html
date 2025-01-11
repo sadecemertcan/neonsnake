@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Snake Adventure</title>
     <style>
         body {
@@ -16,6 +16,7 @@
             font-family: 'Courier New', Courier, monospace;
             color: #fff;
             overflow: hidden;
+            touch-action: none;
         }
         #backgroundCanvas {
             position: fixed;
@@ -28,18 +29,24 @@
         }
         .game-container {
             position: relative;
-            width: 400px;
+            width: 100%;
+            max-width: 400px;
             margin: 0 auto;
+            padding: 0 10px;
         }
         canvas {
+            width: 100%;
+            height: auto;
             border: 4px solid #00f3ff;
             background-color: rgba(0, 0, 0, 0.8);
             image-rendering: pixelated;
             box-shadow: 0 0 20px #00f3ff;
             border-radius: 10px;
+            touch-action: none;
         }
         .info-container {
-            width: 400px;
+            width: 100%;
+            max-width: 400px;
             margin-bottom: 15px;
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
@@ -99,8 +106,9 @@
             text-shadow: 0 0 5px #00f3ff;
             box-shadow: 0 0 10px #00f3ff;
             transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
         }
-        .btn:hover {
+        .btn:hover, .btn:active {
             background-color: #00f3ff;
             color: #000;
         }
@@ -110,6 +118,18 @@
             color: #00f3ff;
             font-size: 16px;
             text-shadow: 0 0 5px #00f3ff;
+        }
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 0 5px;
+            }
+            .btn {
+                padding: 8px 15px;
+                font-size: 14px;
+            }
+            .controls-info {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -131,8 +151,8 @@
             <button id="soundToggle" class="btn">🔊 Ses</button>
         </div>
         <div class="controls-info">
-            Yön tuşları ile hareket et<br>
-            Space tuşu ile duraklat/devam et
+            Yönlendirmek için ekrana dokun<br>
+            Her dokunuş yılanı saat yönünde döndürür
         </div>
     </div>
 
