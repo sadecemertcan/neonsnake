@@ -1,1 +1,284 @@
- 
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Snake</title>
+    <style>
+        :root {
+            --primary-color: #0f0;
+            --bg-color: rgba(0, 255, 0, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+        }
+
+        #game-info {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #score, #level, #animal {
+            padding: 5px 15px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color), inset 0 0 5px var(--primary-color);
+            background-color: var(--bg-color);
+            border-radius: 3px;
+            backdrop-filter: blur(5px);
+        }
+
+        #power-up {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid #f0f;
+            box-shadow: 0 0 10px #f0f;
+            color: #f0f;
+            text-shadow: 0 0 5px #f0f;
+            border-radius: 3px;
+            display: none;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+
+        #gameCanvas {
+            border: 2px solid var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color);
+            background-color: #000;
+            image-rendering: pixelated;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color);
+            color: var(--primary-color);
+            text-align: center;
+            font-size: 24px;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            white-space: pre-line;
+            border-radius: 10px;
+        }
+
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+            padding: 15px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border-radius: 3px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #controls p {
+            margin: 5px 0;
+            color: var(--primary-color);
+        }
+
+        #controls p:first-child {
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }
+
+        #color-picker {
+            margin-top: 20px;
+            text-align: center;
+            padding: 15px;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border-radius: 3px;
+        }
+
+        .color-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        #language-switch {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            #game-container {
+                padding: 10px;
+                width: 100%;
+                border-radius: 0;
+            }
+
+            #game-info {
+                font-size: 16px;
+                gap: 10px;
+            }
+
+            #gameCanvas {
+                width: 100%;
+                height: auto;
+            }
+
+            #message {
+                font-size: 20px;
+                width: 90%;
+            }
+
+            #controls, #color-picker {
+                font-size: 14px;
+                margin-top: 10px;
+            }
+        }
+
+        @keyframes glitch {
+            0% { text-shadow: 0 0 5px var(--primary-color); }
+            50% { text-shadow: -2px 0 #f0f, 2px 0 #0ff; }
+            100% { text-shadow: 0 0 5px var(--primary-color); }
+        }
+
+        .glitch {
+            animation: glitch 2s infinite;
+        }
+
+        .swipe-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            display: none;
+        }
+
+        @media (hover: none) {
+            .swipe-overlay {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="swipe-overlay"></div>
+    <button id="language-switch">EN</button>
+    <div id="game-container">
+        <div id="game-info">
+            <div id="score" class="glitch">Skor: 0</div>
+            <div id="level" class="glitch">Seviye: 1</div>
+            <div id="animal" class="glitch">Yılan</div>
+        </div>
+        <div id="power-up"></div>
+        <canvas id="gameCanvas" width="450" height="450"></canvas>
+        <div id="message"></div>
+        <div id="controls">
+            <p>Kontroller</p>
+            <p class="desktop-controls">↑ ↓ ← → : Hareket</p>
+            <p class="desktop-controls">F : Özel Yetenek</p>
+            <p class="mobile-controls">Kaydırarak Hareket Et</p>
+            <p class="mobile-controls">Ekrana Dokun: Özel Yetenek</p>
+        </div>
+        <div id="color-picker">
+            <p>Yılan Rengi</p>
+            <div class="color-buttons">
+                <button class="color-btn" data-color="#0f0" style="background-color: #0f0"></button>
+                <button class="color-btn" data-color="#f0f" style="background-color: #f0f"></button>
+                <button class="color-btn" data-color="#0ff" style="background-color: #0ff"></button>
+                <button class="color-btn" data-color="#ff0" style="background-color: #ff0"></button>
+                <button class="color-btn" data-color="#f00" style="background-color: #f00"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ses dosyaları -->
+    <audio id="eatSound" src="sounds/eat.mp3"></audio>
+    <audio id="levelUpSound" src="sounds/levelup.mp3"></audio>
+    <audio id="gameOverSound" src="sounds/gameover.mp3"></audio>
+
+    <script src="game.js"></script>
+</body>
+</html> 
