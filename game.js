@@ -61,6 +61,13 @@ const pauseBtn = document.getElementById('pauseBtn');
 const messageDiv = document.getElementById('message');
 const levelInfo = document.getElementById('levelInfo');
 
+// Mobil kontrol butonları
+const upButton = document.getElementById('upButton');
+const downButton = document.getElementById('downButton');
+const leftButton = document.getElementById('leftButton');
+const rightButton = document.getElementById('rightButton');
+const centerButton = document.getElementById('centerButton');
+
 startBtn.addEventListener('click', startGame);
 pauseBtn.addEventListener('click', togglePause);
 document.addEventListener('keydown', handleKeyPress);
@@ -483,7 +490,78 @@ function emitBeat() {
     window.dispatchEvent(event);
 }
 
-// Oyun başladığında rekor bilgisini göster
+// Mobil kontrol event listener'ları
+function addMobileControls() {
+    // Yön tuşları
+    upButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (dy !== 1 && lastDirection.dy !== 1) {
+            dx = 0;
+            dy = -1;
+        }
+    });
+
+    downButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (dy !== -1 && lastDirection.dy !== -1) {
+            dx = 0;
+            dy = 1;
+        }
+    });
+
+    leftButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (dx !== 1 && lastDirection.dx !== 1) {
+            dx = -1;
+            dy = 0;
+        }
+    });
+
+    rightButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (dx !== -1 && lastDirection.dx !== -1) {
+            dx = 1;
+            dy = 0;
+        }
+    });
+
+    // Orta buton (Space tuşu işlevi)
+    centerButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (!isGameRunning || gameOver()) {
+            startGame();
+        }
+    });
+}
+
+// Mobil cihaz kontrolü
+function isMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Oyun başladığında mobil kontrolleri ekle
 window.onload = function() {
     updateLevelInfo();
-}; 
+    if (isMobile()) {
+        addMobileControls();
+        // Canvas boyutunu mobil ekrana göre ayarla
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const size = Math.min(screenWidth * 0.9, screenHeight * 0.6);
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+    }
+};
+
+// Ekran döndürme olayını dinle
+window.addEventListener('orientationchange', () => {
+    if (isMobile()) {
+        setTimeout(() => {
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const size = Math.min(screenWidth * 0.9, screenHeight * 0.6);
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }, 100);
+    }
+}); 
