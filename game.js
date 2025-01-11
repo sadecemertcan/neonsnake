@@ -1,7 +1,7 @@
 // Oyun Sabitleri
 const GAME_CONFIG = {
     GRID_SIZE: 15,
-    GRID_COUNT: 30,
+    GRID_COUNT: window.innerWidth < 768 ? 20 : 30,
     INITIAL_SPEED: 200,
     MIN_SPEED: 50,
     SPEED_DECREASE: 5,
@@ -14,9 +14,30 @@ const GAME_CONFIG = {
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Canvas boyutunu ayarla
-canvas.width = GAME_CONFIG.GRID_COUNT * GAME_CONFIG.GRID_SIZE;
-canvas.height = GAME_CONFIG.GRID_COUNT * GAME_CONFIG.GRID_SIZE;
+// Canvas boyutunu ayarla ve responsive yap
+function resizeCanvas() {
+    const isMobile = window.innerWidth < 768;
+    const size = isMobile ? 
+        Math.min(window.innerWidth - 40, window.innerHeight - 200) : 
+        Math.min(600, window.innerHeight - 100);
+    
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Grid boyutunu canvas'a göre ayarla
+    GAME_CONFIG.GRID_SIZE = size / GAME_CONFIG.GRID_COUNT;
+}
+
+// İlk boyutlandırma
+resizeCanvas();
+
+// Pencere boyutu değiştiğinde canvas'ı yeniden boyutlandır
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    if (gameState.gameStarted) {
+        draw();
+    }
+});
 
 // Oyun Durumu
 let gameState = {
