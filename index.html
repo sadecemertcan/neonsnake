@@ -138,40 +138,8 @@
             text-decoration: underline;
         }
 
-        #color-picker {
-            margin-top: 20px;
-            text-align: center;
-            padding: 15px;
-            border: 1px solid var(--primary-color);
-            box-shadow: 0 0 10px var(--primary-color);
-            background: var(--glass-bg);
-            backdrop-filter: blur(5px);
-            border-radius: 3px;
-        }
-
-        .color-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .color-btn {
-            width: 30px;
-            height: 30px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .color-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .color-btn.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 15px currentColor;
+        #color-picker, .color-buttons, .color-btn {
+            display: none;
         }
 
         #language-switch {
@@ -293,11 +261,140 @@
                 display: block;
             }
         }
+
+        .trail {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .power-up-effect {
+            position: absolute;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .explosion {
+            position: absolute;
+            pointer-events: none;
+            z-index: 101;
+        }
+
+        #game-modes {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--primary-color);
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        #achievements {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--primary-color);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #high-scores {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .neon-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.2;
+            background: 
+                linear-gradient(var(--primary-color) 1px, transparent 1px) 0 0,
+                linear-gradient(90deg, var(--primary-color) 1px, transparent 1px) 0 0;
+            background-size: 20px 20px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(20px); }
+        }
+
+        .level-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 1000;
+            display: none;
+            animation: levelTransition 1s ease-in-out;
+        }
+
+        @keyframes levelTransition {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        #social-share {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .share-button {
+            background: var(--glass-bg);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .share-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px var(--primary-color);
+        }
     </style>
 </head>
 <body>
+    <div class="neon-grid"></div>
+    <div class="level-transition"></div>
     <div class="swipe-overlay"></div>
+    
+    <select id="game-modes">
+        <option value="classic">Klasik</option>
+        <option value="time">Zaman Yarışı</option>
+        <option value="maze">Labirent</option>
+    </select>
+
     <button id="language-switch">EN</button>
+    
     <div id="game-container">
         <div id="game-info">
             <div id="score" class="glitch">Skor: 0</div>
@@ -314,22 +411,30 @@
             <p class="mobile-controls">Kaydırarak Hareket Et</p>
             <p class="mobile-controls">Ekrana Dokun: Özel Yetenek</p>
         </div>
-        <div id="color-picker">
-            <p>Yılan Rengi</p>
-            <div class="color-buttons">
-                <button class="color-btn" data-color="#0f0" style="background-color: #0f0"></button>
-                <button class="color-btn" data-color="#f0f" style="background-color: #f0f"></button>
-                <button class="color-btn" data-color="#0ff" style="background-color: #0ff"></button>
-                <button class="color-btn" data-color="#ff0" style="background-color: #ff0"></button>
-                <button class="color-btn" data-color="#f00" style="background-color: #f00"></button>
-            </div>
-        </div>
+    </div>
+
+    <div id="achievements">
+        <h3>Başarımlar</h3>
+        <div id="achievement-list"></div>
+    </div>
+
+    <div id="high-scores">
+        <h3>Yüksek Skorlar</h3>
+        <div id="score-list"></div>
+    </div>
+
+    <div id="social-share">
+        <button class="share-button" onclick="shareScore('twitter')">Twitter</button>
+        <button class="share-button" onclick="shareScore('facebook')">Facebook</button>
+        <button class="share-button" onclick="shareScore('whatsapp')">WhatsApp</button>
     </div>
 
     <!-- Ses dosyaları -->
     <audio id="eatSound" src="sounds/eat.mp3"></audio>
     <audio id="levelUpSound" src="sounds/levelup.mp3"></audio>
     <audio id="gameOverSound" src="sounds/gameover.mp3"></audio>
+    <audio id="powerUpSound" src="sounds/powerup.mp3"></audio>
+    <audio id="achievementSound" src="sounds/achievement.mp3"></audio>
 
     <script src="game.js"></script>
 </body>

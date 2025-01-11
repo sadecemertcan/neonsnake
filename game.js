@@ -453,6 +453,12 @@ function updateGame() {
 
 // Yem Yeme İşlemi
 function handleFoodCollision() {
+    const foodPos = {
+        x: gameState.food.x * GAME_CONFIG.GRID_SIZE,
+        y: gameState.food.y * GAME_CONFIG.GRID_SIZE
+    };
+    createExplosion(foodPos.x, foodPos.y);
+    
     gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
     updateUI();
     
@@ -465,6 +471,7 @@ function handleFoodCollision() {
     
     if (Math.random() < GAME_CONFIG.POWER_UP_CHANCE) {
         activatePowerUp();
+        gameState.powerUpCount++;
     }
 }
 
@@ -518,11 +525,17 @@ function gameOver() {
     cancelAnimationFrame(gameState.gameLoop);
     gameState.gameLoop = null;
     
+    if (navigator.vibrate) {
+        navigator.vibrate(500); // Mobil cihazlarda titreşim
+    }
+    
     playSound(gameOverSound);
     
     const message = document.getElementById('message');
     message.textContent = `${TRANSLATIONS[currentLang].gameOver}\n${TRANSLATIONS[currentLang].finalScore}: ${gameState.score}\n${TRANSLATIONS[currentLang].finalLevel}: ${gameState.level}`;
     message.style.display = 'block';
+    
+    checkHighScore(gameState.score);
 }
 
 // Çizim İşlemleri
@@ -923,3 +936,293 @@ function updateMessages() {
     // Kontrol metinlerini güncelle
     document.querySelector('#controls p:first-child').textContent = TRANSLATIONS[currentLang].controls;
 } 
+
+// Yeni özellikler için sabitler
+const ACHIEVEMENTS = {
+    SCORE_100: { name: '100 Puan', description: '100 puan topla', unlocked: false },
+    LEVEL_5: { name: 'Seviye 5', description: '5. seviyeye ulaş', unlocked: false },
+    POWER_UP_10: { name: 'Güç Ustası', description: '10 güç-up topla', unlocked: false },
+    SPEED_DEMON: { name: 'Hız Şeytanı', description: 'Maksimum hıza ulaş', unlocked: false }
+};
+
+// Oyun modları
+const GAME_MODES = {
+    classic: {
+        name: 'Klasik',
+        init: () => {
+            gameState.timeLimit = null;
+            gameState.maze = null;
+        }
+    },
+    time: {
+        name: 'Zaman Yarışı',
+        init: () => {
+            gameState.timeLimit = 60;
+            gameState.maze = null;
+            startTimer();
+        }
+    },
+    maze: {
+        name: 'Labirent',
+        init: () => {
+            gameState.timeLimit = null;
+            gameState.maze = generateMaze();
+        }
+    }
+};
+
+// Yüksek skorlar
+let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+
+// Oyun durumuna yeni özellikler ekle
+gameState.powerUpCount = 0;
+gameState.currentMode = 'classic';
+gameState.timeLimit = null;
+gameState.maze = null;
+gameState.trail = [];
+
+// Iz efekti için fonksiyon
+function addTrailEffect(x, y) {
+    const trail = document.createElement('div');
+    trail.className = 'trail';
+    trail.style.left = x + 'px';
+    trail.style.top = y + 'px';
+    trail.style.width = '5px';
+    trail.style.height = '5px';
+    trail.style.background = `hsl(${hue}, 100%, 50%)`;
+    document.body.appendChild(trail);
+    
+    setTimeout(() => {
+        trail.style.opacity = '0';
+        setTimeout(() => trail.remove(), 300);
+    }, 100);
+}
+
+// Patlama efekti
+function createExplosion(x, y) {
+    const explosion = document.createElement('div');
+    explosion.className = 'explosion';
+    explosion.style.left = x + 'px';
+    explosion.style.top = y + 'px';
+    document.body.appendChild(explosion);
+    
+    explosion.style.animation = 'explode 0.5s ease-out';
+    setTimeout(() => explosion.remove(), 500);
+}
+
+// Güç-up efektleri
+function createPowerUpEffect(type) {
+    const effect = document.createElement('div');
+    effect.className = 'power-up-effect';
+    
+    switch(type) {
+        case 'SPEED':
+            effect.style.background = 'linear-gradient(transparent, #ff0)';
+            break;
+        case 'GHOST':
+            effect.style.background = 'radial-gradient(circle, #fff, transparent)';
+            break;
+        // ... diğer efektler
+    }
+    
+    document.body.appendChild(effect);
+    setTimeout(() => effect.remove(), 1000);
+}
+
+// Başarım kontrolü
+function checkAchievements() {
+    if (gameState.score >= 100 && !ACHIEVEMENTS.SCORE_100.unlocked) {
+        unlockAchievement('SCORE_100');
+    }
+    if (gameState.level >= 5 && !ACHIEVEMENTS.LEVEL_5.unlocked) {
+        unlockAchievement('LEVEL_5');
+    }
+    if (gameState.powerUpCount >= 10 && !ACHIEVEMENTS.POWER_UP_10.unlocked) {
+        unlockAchievement('POWER_UP_10');
+    }
+    if (gameState.gameSpeed <= GAME_CONFIG.MIN_SPEED && !ACHIEVEMENTS.SPEED_DEMON.unlocked) {
+        unlockAchievement('SPEED_DEMON');
+    }
+}
+
+// Başarım açma
+function unlockAchievement(id) {
+    ACHIEVEMENTS[id].unlocked = true;
+    const achievementSound = document.getElementById('achievementSound');
+    playSound(achievementSound);
+    
+    // Başarım bildirimi göster
+    const notification = document.createElement('div');
+    notification.textContent = `Başarım Açıldı: ${ACHIEVEMENTS[id].name}`;
+    notification.className = 'achievement-notification';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 3000);
+    
+    // Başarımları kaydet
+    localStorage.setItem('achievements', JSON.stringify(ACHIEVEMENTS));
+}
+
+// Yüksek skor kontrolü
+function checkHighScore(score) {
+    const lowestScore = highScores.length < 10 ? 0 : highScores[highScores.length - 1].score;
+    
+    if (score > lowestScore) {
+        const name = prompt('Yüksek skor! İsminizi girin:');
+        if (name) {
+            highScores.push({ name, score });
+            highScores.sort((a, b) => b.score - a.score);
+            if (highScores.length > 10) {
+                highScores.pop();
+            }
+            localStorage.setItem('highScores', JSON.stringify(highScores));
+            showHighScores();
+        }
+    }
+}
+
+// Yüksek skorları göster
+function showHighScores() {
+    const scoreList = document.getElementById('score-list');
+    scoreList.innerHTML = '';
+    
+    highScores.forEach((score, index) => {
+        const li = document.createElement('div');
+        li.textContent = `${index + 1}. ${score.name}: ${score.score}`;
+        scoreList.appendChild(li);
+    });
+    
+    document.getElementById('high-scores').style.display = 'block';
+}
+
+// Sosyal medya paylaşımı
+function shareScore(platform) {
+    const text = `Neon Snake'de ${gameState.score} puan yaptım! Seviye: ${gameState.level}`;
+    const url = window.location.href;
+    
+    let shareUrl;
+    switch(platform) {
+        case 'twitter':
+            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+            break;
+        case 'facebook':
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+            break;
+        case 'whatsapp':
+            shareUrl = `whatsapp://send?text=${encodeURIComponent(text + ' ' + url)}`;
+            break;
+    }
+    
+    window.open(shareUrl, '_blank');
+}
+
+// Oyun modu değiştirme
+document.getElementById('game-modes').addEventListener('change', (e) => {
+    gameState.currentMode = e.target.value;
+    GAME_MODES[gameState.currentMode].init();
+    startGame();
+});
+
+// Seviye geçiş efekti
+function showLevelTransition() {
+    const transition = document.querySelector('.level-transition');
+    transition.style.display = 'block';
+    
+    setTimeout(() => {
+        transition.style.display = 'none';
+    }, 1000);
+}
+
+// Oyun döngüsünü güncelle
+function gameStep(currentTime) {
+    if (!gameState.gameStarted) return;
+    
+    gameState.gameLoop = requestAnimationFrame(gameStep);
+    
+    const secondsSinceLastRender = (currentTime - gameState.lastRenderTime) / 1000;
+    if (secondsSinceLastRender < gameState.gameSpeed / 1000) return;
+    
+    gameState.lastRenderTime = currentTime;
+    
+    // Iz efekti ekle
+    const head = gameState.snake[0];
+    const x = head.x * GAME_CONFIG.GRID_SIZE;
+    const y = head.y * GAME_CONFIG.GRID_SIZE;
+    addTrailEffect(x, y);
+    
+    updateMovement();
+    updateGame();
+    draw();
+    
+    // Başarımları kontrol et
+    checkAchievements();
+}
+
+// Yem yeme işlemini güncelle
+function handleFoodCollision() {
+    const foodPos = {
+        x: gameState.food.x * GAME_CONFIG.GRID_SIZE,
+        y: gameState.food.y * GAME_CONFIG.GRID_SIZE
+    };
+    createExplosion(foodPos.x, foodPos.y);
+    
+    gameState.score += GAME_CONFIG.POINTS_PER_FOOD;
+    updateUI();
+    
+    if (gameState.score >= gameState.level * GAME_CONFIG.LEVEL_UP_SCORE) {
+        levelUp();
+    }
+    
+    createFood();
+    playSound(eatSound);
+    
+    if (Math.random() < GAME_CONFIG.POWER_UP_CHANCE) {
+        activatePowerUp();
+        gameState.powerUpCount++;
+    }
+}
+
+// Güç-up aktivasyonunu güncelle
+function activatePowerUp() {
+    if (gameState.powerUpActive) return;
+    
+    const powerUpTypes = Object.keys(POWER_UPS);
+    gameState.powerUpType = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+    gameState.powerUpActive = true;
+    
+    const powerUp = POWER_UPS[gameState.powerUpType];
+    powerUp.apply();
+    
+    createPowerUpEffect(gameState.powerUpType);
+    playSound(document.getElementById('powerUpSound'));
+    
+    updatePowerUpUI(powerUp);
+    
+    gameState.powerUpTimer = setTimeout(() => {
+        powerUp.remove();
+        gameState.powerUpActive = false;
+        gameState.powerUpType = null;
+        document.getElementById('power-up').style.display = 'none';
+    }, powerUp.duration);
+}
+
+// Oyun bitişini güncelle
+function gameOver() {
+    gameState.gameStarted = false;
+    cancelAnimationFrame(gameState.gameLoop);
+    gameState.gameLoop = null;
+    
+    if (navigator.vibrate) {
+        navigator.vibrate(500); // Mobil cihazlarda titreşim
+    }
+    
+    playSound(gameOverSound);
+    
+    const message = document.getElementById('message');
+    message.textContent = `${TRANSLATIONS[currentLang].gameOver}\n${TRANSLATIONS[currentLang].finalScore}: ${gameState.score}\n${TRANSLATIONS[currentLang].finalLevel}: ${gameState.level}`;
+    message.style.display = 'block';
+    
+    checkHighScore(gameState.score);
+}
+
+// ... rest of the code ... 
