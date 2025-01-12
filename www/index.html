@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Snake</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: black;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            margin: 10px 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 600px;
+        }
+
+        #gameCanvas {
+            border: 2px solid #0f0;
+            box-shadow: 0 0 20px #0f0;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+
+        .game-info {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 1em;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .info-box {
+            background: rgba(0, 255, 0, 0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 1.2em;
+            white-space: pre-line;
+            text-shadow: 0 0 10px #0f0;
+            display: none;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 300px;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .game-info {
+                font-size: 0.8em;
+                gap: 5px;
+                margin-bottom: 15px;
+            }
+            
+            .info-box {
+                padding: 3px 6px;
+            }
+            
+            #message {
+                font-size: 0.9em;
+                padding: 8px;
+            }
+
+            #game-container {
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-info">
+        <div class="info-box" id="score">SKOR: 0</div>
+        <div class="info-box" id="level">SEVİYE: 1</div>
+        <div class="info-box" id="animal">YILAN</div>
+    </div>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="message"></div>
+    </div>
+
+    <script src="capacitor.js"></script>
+    <script src="game.js"></script>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <pattern id="hexagons" width="50" height="43.4" patternUnits="userSpaceOnUse">
+            <path d="M25,3.4 L37.5,11.7 L37.5,28.3 L25,36.6 L12.5,28.3 L12.5,11.7 Z" 
+                  stroke="#1a1a1a" 
+                  stroke-width="1" 
+                  fill="none"/>
+            <path d="M50,3.4 L62.5,11.7 L62.5,28.3 L50,36.6 L37.5,28.3 L37.5,11.7 Z" 
+                  stroke="#1a1a1a" 
+                  stroke-width="1" 
+                  fill="none"/>
+            <path d="M0,3.4 L12.5,11.7 L12.5,28.3 L0,36.6 L-12.5,28.3 L-12.5,11.7 Z" 
+                  stroke="#1a1a1a" 
+                  stroke-width="1" 
+                  fill="none"/>
+            <path d="M25,36.6 L37.5,44.9 L37.5,61.5 L25,69.8 L12.5,61.5 L12.5,44.9 Z" 
+                  stroke="#1a1a1a" 
+                  stroke-width="1" 
+                  fill="none"/>
+        </pattern>
+    </defs>
+    <rect width="100" height="100" fill="#000"/>
+    <rect width="100" height="100" fill="url(#hexagons)"/>
+</svg> 

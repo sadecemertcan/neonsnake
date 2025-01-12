@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <!-- Sol göz -->
+    <circle cx="10" cy="16" r="4" fill="#ffffff"/>
+    <circle cx="10" cy="16" r="2" fill="#000000"/>
+    <circle cx="9" cy="15" r="1" fill="#ffffff" fill-opacity="0.8"/>
+    
+    <!-- Sağ göz -->
+    <circle cx="22" cy="16" r="4" fill="#ffffff"/>
+    <circle cx="22" cy="16" r="2" fill="#000000"/>
+    <circle cx="21" cy="15" r="1" fill="#ffffff" fill-opacity="0.8"/>
+</svg> 

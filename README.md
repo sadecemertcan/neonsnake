@@ -1,80 +1,54 @@
 # 🐍 Neon Snake
 
-Modern ve retro tarzını birleştiren, mobil uyumlu bir yılan oyunu. Neon efektleri, özel yetenekler ve çeşitli hayvan karakterleriyle benzersiz bir oyun deneyimi sunar.
+Çok oyunculu, modern bir yılan oyunu. WebSocket teknolojisi ile gerçek zamanlı çok oyunculu deneyim sunar.
 
 ## 🎮 Özellikler
 
+- 🌐 Gerçek zamanlı çok oyunculu oynanış
+- 🎨 Modern neon görsel efektler
 - 📱 Mobil uyumlu tasarım
-- 💻 Masaüstü desteği
-- 🎨 Neon görsel efektler
-- 🌓 Buzlu cam (frosted glass) arayüz
-- 🎵 Ses efektleri
-- 🎯 Artan zorluk seviyesi
-- 💨 Akıcı animasyonlar
-- 🌍 Türkçe arayüz
+- 🤖 Yapay zeka botlar
+- 🗺️ Mini harita
+- 🏆 Skor tablosu
 
 ## 🎯 Nasıl Oynanır
 
-### 💻 Masaüstü Kontrolleri
-- **Ok tuşları**: Hareket
-- **F tuşu**: Özel yetenek
-- **Space**: Oyunu başlat/yeniden başlat
-
-### 📱 Mobil Kontroller
-- **Kaydırma**: Yön değiştirme
-- **Dokunmatik butonlar**: Hareket ve özel yetenek
-- **Ekrana dokun**: Oyunu başlat/yeniden başlat
-
-## 🦁 Hayvan Karakterleri
-
-1. 🐍 **Yılan**: Temel karakter
-2. 🐸 **Kurbağa**: Zıplayarak hareket eder
-3. 🐰 **Tavşan**: Sürekli hızlanır
-4. 🐯 **Kaplan**: Engelleri yok edebilir
-5. 🦅 **Kartal**: Serbestçe uçabilir
-6. 🐊 **Timsah**: Ağır ama güçlü
-7. 🐺 **Kurt**: Ekstra canlara sahip
-8. 🐉 **Ejderha**: Ateş topu atabilir
-
-## 🎮 Oyun Özellikleri
-
-- **Güç Artırımları**: Hız artışı, hayalet modu, küçülme ve daha fazlası
-- **Seviye Sistemi**: Her 100 puanda bir seviye atlama
-- **Özel Yetenekler**: Her hayvan karakterine özgü yetenekler
-- **Engeller**: Artan zorluk seviyesiyle birlikte çoğalan engeller
+1. Oyuna giriş yapmak için bir takma ad girin
+2. Fare veya dokunmatik ekran ile yılanınızı yönlendirin
+3. Diğer oyunculardan kaçının ve yemler toplayarak büyüyün
+4. Skor tablosunda üst sıralara çıkmaya çalışın
 
 ## 🛠️ Teknolojiler
 
+- Node.js
+- Express
+- Socket.IO
 - HTML5 Canvas
-- CSS3 (Flexbox, Grid, Animations)
-- Vanilla JavaScript
-- Responsive Design
-- Touch Events API
 
-## 🎨 Görsel Tasarım
+## ⚙️ Kurulum
 
-- Neon efektleri
-- Buzlu cam arayüz
-- Retro grid arka plan
-- Dinamik gölgeler
-- Glitch animasyonları
+```bash
+# Repository'yi klonla
+git clone https://github.com/sadecemertcan/neonsnake.git
 
-## 🔄 Güncellemeler
+# Proje dizinine git
+cd neonsnake
 
-- [x] Mobil uyumluluk eklendi
-- [x] Dokunmatik kontroller geliştirildi
-- [x] Görsel efektler iyileştirildi
-- [x] Performans optimizasyonları yapıldı
+# Bağımlılıkları yükle
+npm install
 
-## 🎯 Gelecek Özellikler
+# Sunucuyu başlat
+npm start
+```
 
-- [ ] Çoklu dil desteği
-- [ ] Yüksek skor tablosu
-- [ ] Yeni hayvan karakterleri
-- [ ] Özelleştirilebilir temalar
+## 🎮 Canlı Demo
 
-## 🎮 [Hemen Oyna](https://sadecemertcan.github.io/neon-snake)
+[Oyunu oynamak için tıklayın](https://neonsnake.onrender.com)
+
+## 👨‍💻 Geliştirici
+
+[sadecemertcan](https://github.com/sadecemertcan)
 
 ## 📝 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakınız. 
+MIT 
