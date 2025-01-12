@@ -5,51 +5,42 @@ const io = require('socket.io')(http, {
     cors: {
         origin: "*",
         methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["*"]
-    }
+        credentials: true
+    },
+    allowEIO3: true,
+    transports: ['websocket', 'polling'],
+    pingTimeout: 30000,
+    pingInterval: 10000
 });
 
-// Statik dosyaları serve et
+// CORS ayarları
 app.use(express.static('public'));
-
-// Oyun sabitleri
-const GAME_CONFIG = {
-    GRID_SIZE: 20,
-    WORLD_BOUNDS: {
-        MIN_X: -1000,
-        MAX_X: 1000,
-        MIN_Y: -1000,
-        MAX_Y: 1000
-    },
-    FOOD_COUNT: 200,
-    FOOD_SPAWN_INTERVAL: 1000,
-    FOOD_SIZE: 10
-};
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    next();
+});
 
 // Oyun durumu
 const gameState = {
     players: new Map(),
     foods: new Set(),
-    scores: new Map()
+    foodArea: {
+        MIN_X: -200,
+        MAX_X: 200,
+        MIN_Y: -200,
+        MAX_Y: 200
+    }
 };
 
-// Rastgele pozisyon oluştur
-function getRandomPosition() {
-    const margin = 100;
-    return {
-        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - margin * 2) + 
-           GAME_CONFIG.WORLD_BOUNDS.MIN_X + margin,
-        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - margin * 2) + 
-           GAME_CONFIG.WORLD_BOUNDS.MIN_Y + margin
-    };
-}
-
-// Yem oluştur
+// Yem oluşturma fonksiyonu
 function spawnFood() {
-    const position = getRandomPosition();
     const food = {
-        x: position.x,
-        y: position.y,
+        x: Math.random() * (gameState.foodArea.MAX_X - gameState.foodArea.MIN_X) + gameState.foodArea.MIN_X,
+        y: Math.random() * (gameState.foodArea.MAX_Y - gameState.foodArea.MIN_Y) + gameState.foodArea.MIN_Y,
+        value: 1,
         color: `hsl(${Math.random() * 360}, 100%, 50%)`
     };
     gameState.foods.add(food);
@@ -57,80 +48,113 @@ function spawnFood() {
     return food;
 }
 
-// Başlangıç yemlerini oluştur
-function initializeFoods() {
-    gameState.foods.clear();
-    for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
-        spawnFood();
-    }
+// Başlangıçta 500 yem oluştur
+for (let i = 0; i < 500; i++) {
+    spawnFood();
 }
 
-// İlk yemleri oluştur
-initializeFoods();
-
-// Düzenli aralıklarla yem oluştur
-setInterval(() => {
-    if (gameState.foods.size < GAME_CONFIG.FOOD_COUNT) {
-        spawnFood();
-    }
-}, GAME_CONFIG.FOOD_SPAWN_INTERVAL);
-
-// Socket.IO bağlantı yönetimi
 io.on('connection', (socket) => {
     console.log('Yeni oyuncu bağlandı:', socket.id);
     
-    // Mevcut oyun durumunu gönder
-    socket.emit('gameState', {
-        players: Array.from(gameState.players.values()),
-        foods: Array.from(gameState.foods)
-    });
-    
     // Oyuncu katılma
-    socket.on('playerJoin', (player) => {
-        console.log('Oyuncu katıldı:', player.name);
-        gameState.players.set(socket.id, {
-            ...player,
+    socket.on('playerJoin', (data) => {
+        const player = {
             id: socket.id,
+            name: data.name,
+            color: data.color,
+            snake: [
+                { x: data.position.x, y: data.position.y },
+                { x: data.position.x - 1, y: data.position.y },
+                { x: data.position.x - 2, y: data.position.y }
+            ],
             score: 0
-        });
-        io.emit('playerJoined', gameState.players.get(socket.id));
+        };
+        
+        gameState.players.set(socket.id, player);
+        
+        // Yeni oyuncuya mevcut durumu gönder
+        socket.emit('foodSpawned', Array.from(gameState.foods));
+        
+        // Diğer oyunculara yeni oyuncuyu bildir
+        socket.broadcast.emit('playerJoined', player);
+        
+        // Yeni oyuncuya diğer oyuncuları gönder
+        for (const [id, otherPlayer] of gameState.players) {
+            if (id !== socket.id) {
+                socket.emit('playerJoined', otherPlayer);
+            }
+        }
+        
+        updateLeaderboard();
     });
     
     // Oyuncu hareketi
     socket.on('updatePosition', (data) => {
         const player = gameState.players.get(socket.id);
         if (player) {
-            Object.assign(player, data);
-            socket.broadcast.emit('playerMoved', player);
+            player.snake = data.snake;
+            player.direction = data.direction;
+            player.score = data.score;
+            socket.broadcast.emit('playerMoved', {
+                id: socket.id,
+                snake: player.snake,
+                direction: player.direction
+            });
+            updateLeaderboard();
         }
     });
     
     // Yem yeme
     socket.on('foodEaten', (food) => {
-        gameState.foods.forEach(f => {
-            if (Math.abs(f.x - food.x) < GAME_CONFIG.FOOD_SIZE && 
-                Math.abs(f.y - food.y) < GAME_CONFIG.FOOD_SIZE) {
+        for (const f of gameState.foods) {
+            if (f.x === food.x && f.y === food.y) {
                 gameState.foods.delete(f);
-                const player = gameState.players.get(socket.id);
-                if (player) {
-                    player.score += 1;
-                }
-                spawnFood();
-                io.emit('foodSpawned', Array.from(gameState.foods));
+                break;
             }
-        });
+        }
+        
+        // 10 saniye sonra yeni yem oluştur
+        setTimeout(spawnFood, 10000);
+        
+        // Tüm oyunculara güncel yem listesini gönder
+        io.emit('foodSpawned', Array.from(gameState.foods));
     });
     
-    // Bağlantı kopması
+    // Yeni yem oluşturma
+    socket.on('foodSpawned', (food) => {
+        gameState.foods.add(food);
+        io.emit('foodSpawned', Array.from(gameState.foods));
+    });
+    
+    // Oyuncu ayrılma
     socket.on('disconnect', () => {
         console.log('Oyuncu ayrıldı:', socket.id);
         gameState.players.delete(socket.id);
         io.emit('playerLeft', socket.id);
+        updateLeaderboard();
     });
 });
 
+// Skor tablosunu güncelle
+function updateLeaderboard() {
+    const leaderboard = Array.from(gameState.players.values())
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+    io.emit('leaderboardUpdate', leaderboard);
+}
+
 // Sunucuyu başlat
-const PORT = process.env.PORT || 3001;
-http.listen(PORT, () => {
-    console.log(`Sunucu ${PORT} portunda çalışıyor`);
+const port = process.env.PORT || 3001;
+http.listen(port, () => {
+    console.log('Sunucu ' + port + ' portunda çalışıyor');
+    console.log('Bağlantı adresleri:');
+    const interfaces = require('os').networkInterfaces();
+    for (let k in interfaces) {
+        for (let k2 in interfaces[k]) {
+            let address = interfaces[k][k2];
+            if (address.family === 'IPv4' && !address.internal) {
+                console.log('http://' + address.address + ':' + port);
+            }
+        }
+    }
 }); 
