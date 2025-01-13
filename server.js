@@ -28,6 +28,7 @@ app.use((req, res, next) => {
 const gameState = {
     players: new Map(),
     foods: new Set(),
+    powerups: new Set(),
     foodArea: {
         MIN_X: -200,
         MAX_X: 200,
@@ -48,6 +49,26 @@ function spawnFood() {
     io.emit('foodSpawned', Array.from(gameState.foods));
     return food;
 }
+
+// Power-up oluşturma fonksiyonu
+function spawnPowerup() {
+    const powerup = {
+        x: Math.random() * (gameState.foodArea.MAX_X - gameState.foodArea.MIN_X) + gameState.foodArea.MIN_X,
+        y: Math.random() * (gameState.foodArea.MAX_Y - gameState.foodArea.MIN_Y) + gameState.foodArea.MIN_Y,
+        type: Math.random() > 0.6 ? 'SHIELD' : Math.random() > 0.3 ? 'SPEED' : 'GHOST',
+        spawnTime: Date.now()
+    };
+    gameState.powerups.add(powerup);
+    io.emit('powerupSpawned', Array.from(gameState.powerups));
+    return powerup;
+}
+
+// Düzenli aralıklarla power-up oluştur
+setInterval(() => {
+    if (gameState.powerups.size < 5) {
+        spawnPowerup();
+    }
+}, 15000);
 
 // Başlangıçta 500 yem oluştur
 for (let i = 0; i < 500; i++) {
@@ -166,6 +187,18 @@ io.on('connection', (socket) => {
             io.emit('playerLeft', playerId);
             io.emit('foodSpawned', Array.from(gameState.foods));
             updateLeaderboard();
+        }
+    });
+    
+    // Power-up toplama
+    socket.on('powerupCollected', (powerupData) => {
+        for (const p of gameState.powerups) {
+            if (p.x === powerupData.x && p.y === powerupData.y) {
+                gameState.powerups.delete(p);
+                socket.emit('powerupActivated', p.type);
+                io.emit('powerupSpawned', Array.from(gameState.powerups));
+                break;
+            }
         }
     });
 });
