@@ -127,7 +127,7 @@ IMAGES.background.src = '/assets/hexagon-pattern.png';
 IMAGES.food.src = '/assets/food.png';
 IMAGES.snakeEyes.src = '/assets/snake-eyes.png';
 
-// Socket.IO bağlantısı
+// Socket.IO bağlantısı - Tek sunucu
 const socket = io('https://neonsnake.onrender.com', {
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -135,11 +135,7 @@ const socket = io('https://neonsnake.onrender.com', {
     reconnectionDelayMax: 5000,
     timeout: 20000,
     autoConnect: true,
-    transports: ['websocket', 'polling'],
-    path: '/socket.io',
-    withCredentials: true,
-    forceNew: true,
-    multiplex: false
+    transports: ['websocket', 'polling']
 });
 
 // Bağlantı durumu kontrolü
@@ -654,24 +650,24 @@ function updateGame() {
 
 // Çarpışma kontrolü fonksiyonu
 function checkCollision() {
-    if (!gameState.localPlayer) return false;
+    if (!gameState.localPlayer || !gameState.localPlayer.snake[0]) return false;
 
     const head = gameState.localPlayer.snake[0];
-    if (!head) return false;
 
     // Diğer oyuncularla çarpışma kontrolü
     for (const [id, player] of gameState.otherPlayers) {
         for (const segment of player.snake) {
             if (getDistance(head, segment) < GAME_CONFIG.COLLISION_DISTANCE) {
+                socket.emit('playerDied', { id: socket.id, killerId: id });
                 return true;
             }
         }
     }
 
-    // Kendisiyle çarpışma kontrolü (kafa hariç)
+    // Kendisiyle çarpışma kontrolü
     for (let i = 1; i < gameState.localPlayer.snake.length; i++) {
-        const segment = gameState.localPlayer.snake[i];
-        if (getDistance(head, segment) < GAME_CONFIG.COLLISION_DISTANCE) {
+        if (getDistance(head, gameState.localPlayer.snake[i]) < GAME_CONFIG.COLLISION_DISTANCE) {
+            socket.emit('playerDied', { id: socket.id });
             return true;
         }
     }
@@ -681,14 +677,14 @@ function checkCollision() {
 
 // Yem yeme kontrolü fonksiyonu
 function checkFoodCollision() {
-    if (!gameState.localPlayer) return;
+    if (!gameState.localPlayer || !gameState.localPlayer.snake[0]) return;
 
     const head = gameState.localPlayer.snake[0];
-    if (!head) return;
 
-    gameState.foods.forEach(food => {
+    for (const food of gameState.foods) {
         if (getDistance(head, food) < GAME_CONFIG.FOOD_SIZE + GAME_CONFIG.COLLISION_DISTANCE) {
-            // Yemi sil
+            // Yemi sil ve sunucuya bildir
+            socket.emit('foodEaten', { foodId: food.id, playerId: socket.id });
             gameState.foods.delete(food);
             
             // Skoru güncelle
@@ -698,16 +694,13 @@ function checkFoodCollision() {
             const tail = gameState.localPlayer.snake[gameState.localPlayer.snake.length - 1];
             gameState.localPlayer.snake.push({ ...tail });
             
-            // Yeni yem oluştur
-            spawnFood();
-            
             // Skor güncellemesini gönder
             socket.emit('scoreUpdate', {
                 id: socket.id,
                 score: gameState.localPlayer.score
             });
         }
-    });
+    }
 }
 
 // Yem düşürme fonksiyonu
@@ -972,34 +965,76 @@ function gameOver() {
     }, 1000); // 1 saniye gecikme
 }
 
-// Socket.IO Event Handlers
+// Oyuncu güncellemelerini dinle
+socket.on('playerUpdate', (data) => {
+    if (data.id !== socket.id) {
+        const player = gameState.otherPlayers.get(data.id);
+        if (player) {
+            player.snake = data.snake;
+            player.score = data.score;
+            player.direction = data.direction;
+            player.platform = data.platform;
+        }
+    }
+});
+
+// Yeni oyuncu katıldığında
 socket.on('playerJoined', (player) => {
     if (player.id !== socket.id) {
+        console.log('Yeni oyuncu katıldı:', player.name);
         gameState.otherPlayers.set(player.id, {
             id: player.id,
             name: player.name,
             color: player.color,
             snake: [player.position],
             score: player.score || 0,
-            platform: player.platform
+            platform: player.platform,
+            direction: player.direction || { x: 1, y: 0 }
         });
         updatePlayerList();
     }
 });
 
+// Oyuncu ayrıldığında
 socket.on('playerLeft', (playerId) => {
-    gameState.otherPlayers.delete(playerId);
-    updatePlayerList();
-});
-
-socket.on('playerUpdate', (data) => {
-    const player = gameState.otherPlayers.get(data.id);
-    if (player) {
-        player.snake = data.snake;
-        player.score = data.score;
-        player.name = data.name; // İsim güncellemesini ekle
+    console.log('Oyuncu ayrıldı:', playerId);
+    if (gameState.otherPlayers.has(playerId)) {
+        const player = gameState.otherPlayers.get(playerId);
+        dropFood(player.snake); // Ölen oyuncudan yem düşür
+        gameState.otherPlayers.delete(playerId);
+        updatePlayerList();
     }
 });
+
+// Oyuncu öldüğünde
+socket.on('playerDied', (data) => {
+    if (data.id === socket.id) {
+        gameOver();
+    } else {
+        if (gameState.otherPlayers.has(data.id)) {
+            const player = gameState.otherPlayers.get(data.id);
+            dropFood(player.snake);
+            gameState.otherPlayers.delete(data.id);
+            updatePlayerList();
+        }
+    }
+});
+
+// Düzenli olarak sunucuya güncelleme gönder
+function sendUpdate() {
+    if (gameState.localPlayer && gameState.gameStarted) {
+        socket.emit('playerUpdate', {
+            id: socket.id,
+            snake: gameState.localPlayer.snake,
+            direction: gameState.localPlayer.direction,
+            score: gameState.localPlayer.score,
+            platform: gameState.platform
+        });
+    }
+}
+
+// Her frame'de güncelleme gönder
+setInterval(sendUpdate, 1000 / 30); // 30 FPS
 
 // Yön Değiştirme Fonksiyonu
 function changeDirection(newDirection) {
