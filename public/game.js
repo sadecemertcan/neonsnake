@@ -144,11 +144,6 @@ const socket = io('https://neonsnake.onrender.com', {
 socket.on('connect', () => {
     console.log('Sunucuya bağlandı');
     document.getElementById('connectionStatus').style.display = 'none';
-    
-    // Bağlantı kurulduğunda direkt oyunu başlat
-    if (!gameState.gameStarted) {
-        startGame();
-    }
 });
 
 socket.on('connect_error', (error) => {
