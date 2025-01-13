@@ -160,55 +160,87 @@ socket.on('disconnect', () => {
     document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
 });
 
-// Rastgele neon renk oluştur
-function getRandomNeonColor() {
-    const neonColors = [
-        '#ff0000', // Kırmızı
-        '#00ff00', // Yeşil
-        '#0000ff', // Mavi
-        '#ff00ff', // Mor
-        '#ffff00', // Sarı
-        '#00ffff', // Cyan
-        '#ff8800', // Turuncu
-        '#ff0088'  // Pembe
-    ];
-    return neonColors[Math.floor(Math.random() * neonColors.length)];
+// Renk seçimi için değişken
+let selectedColor = null;
+
+// Renk seçimi için event listener'ları ekle
+document.querySelectorAll('.color-option').forEach(option => {
+    option.addEventListener('click', () => {
+        // Önceki seçimi kaldır
+        document.querySelector('.color-option.selected')?.classList.remove('selected');
+        // Yeni seçimi işaretle
+        option.classList.add('selected');
+        // Seçilen rengi kaydet
+        selectedColor = option.dataset.color;
+    });
+});
+
+// İlk rengi varsayılan olarak seç
+document.querySelector('.color-option').click();
+
+// Oyun başlatma butonunu dinle
+document.getElementById('play-button').addEventListener('click', () => {
+    const nickname = document.getElementById('nickname').value.trim();
+    if (!nickname) {
+        alert('Lütfen bir kullanıcı adı girin!');
+        return;
+    }
+    if (!selectedColor) {
+        alert('Lütfen bir renk seçin!');
+        return;
+    }
+    document.getElementById('menu-container').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    document.getElementById('gameCanvas').style.display = 'block';
+    startGame(nickname);
+});
+
+// Yapay Zeka Yılanları
+const AI_SNAKES = [
+    { name: 'NeonHunter', color: '#ff0000' },
+    { name: 'CyberSnake', color: '#00ff00' },
+    { name: 'VirtualViper', color: '#0000ff' },
+    { name: 'PixelPython', color: '#ff00ff' }
+];
+
+// Rastgele pozisyon oluştur
+function getRandomPosition() {
+    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
+    const safeArea = {
+        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
+        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
+        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
+        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
+    };
+
+    return {
+        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
+        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
+    };
 }
 
 // Oyun başlatma fonksiyonunu güncelle
 function startGame(nickname) {
-    if (!nickname || nickname.trim() === '') {
-        alert('Lütfen bir kullanıcı adı girin!');
-        return;
-    }
-
     if (gameState.gameStarted) return;
     
     console.log('Oyun başlatılıyor...');
     
-    // Oyun container'ını göster
-    document.getElementById('game-container').style.display = 'block';
-    document.getElementById('menu-container').style.display = 'none';
-    document.getElementById('gameCanvas').style.display = 'block';
-    
-    // Canvas boyutlarını ayarla
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Rastgele bir neon renk seç
-    const snakeColor = getRandomNeonColor();
+    // Seçilen rengi kullan
+    const snakeColor = selectedColor;
     
     // Rastgele başlangıç pozisyonu
-    const startPos = {
-        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
-        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+    const startPos = getRandomPosition();
+    
+    const gridStartPos = {
+        x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
+        y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
     };
     
     // Yılanı başlangıç pozisyonuna yerleştir
     const snake = [
-        { x: startPos.x, y: startPos.y },
-        { x: startPos.x - 1, y: startPos.y },
-        { x: startPos.x - 2, y: startPos.y }
+        { x: gridStartPos.x, y: gridStartPos.y },
+        { x: gridStartPos.x - 1, y: gridStartPos.y },
+        { x: gridStartPos.x - 2, y: gridStartPos.y }
     ];
     
     // Oyun durumunu sıfırla
@@ -216,7 +248,7 @@ function startGame(nickname) {
         ...gameState,
         localPlayer: {
             id: socket.id,
-            name: nickname.trim(),
+            name: nickname,
             color: snakeColor,
             snake: snake,
             direction: { x: 1, y: 0 },
@@ -233,47 +265,23 @@ function startGame(nickname) {
     // Sunucuya oyuncuyu kaydet
     socket.emit('playerJoin', {
         id: socket.id,
-        name: nickname.trim(),
+        name: nickname,
         color: snakeColor,
-        position: startPos,
+        position: gridStartPos,
         score: 0
     });
+
+    // Yapay zeka yılanlarını başlat
+    initAISnakes();
 
     // Yem sistemini başlat
     startFoodSpawnSystem();
     
     // Oyun döngüsünü başlat
     if (!gameState.gameLoop) {
-        lastTime = performance.now();
         gameState.gameLoop = requestAnimationFrame(gameLoop);
     }
 }
-
-// Event listener'ları ekle
-document.addEventListener('DOMContentLoaded', () => {
-    const playButton = document.getElementById('play-button');
-    const nicknameInput = document.getElementById('nickname');
-
-    playButton.addEventListener('click', () => {
-        const nickname = nicknameInput.value;
-        if (!nickname || nickname.trim() === '') {
-            alert('Lütfen bir kullanıcı adı girin!');
-            return;
-        }
-        startGame(nickname);
-    });
-
-    nicknameInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            const nickname = nicknameInput.value;
-            if (!nickname || nickname.trim() === '') {
-                alert('Lütfen bir kullanıcı adı girin!');
-                return;
-            }
-            startGame(nickname);
-        }
-    });
-});
 
 // Yem oluşturma fonksiyonu
 function spawnFood(nearPlayer = false) {
