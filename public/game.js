@@ -604,9 +604,6 @@ function gameLoop(currentTime) {
             );
         }
         
-        // Mini haritayı çiz
-        drawMinimap();
-        
         lastTime = currentTime;
     }
     
@@ -901,140 +898,8 @@ function interpolateColors(color1, color2, factor) {
     return `rgb(${r},${g},${b})`;
 }
 
-// Mini harita çizimi
-function drawMinimap() {
-    const minimapSize = 150;
-    const padding = 10;
-    const borderWidth = 2;
-    
-    ctx.save();
-    ctx.resetTransform();
-    
-    // Arkaplan
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(
-        padding,
-        padding,
-        minimapSize,
-        minimapSize
-    );
-    
-    // Sınır
-    ctx.strokeStyle = '#0f0';
-    ctx.lineWidth = borderWidth;
-    ctx.strokeRect(
-        padding,
-        padding,
-        minimapSize,
-        minimapSize
-    );
-    
-    // Ölçekleme faktörü
-    const scaleX = minimapSize / (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X);
-    const scaleY = minimapSize / (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y);
-    
-    // Power-up'ları çiz
-    gameState.powerups?.forEach(powerup => {
-        const x = padding + (powerup.x - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-        const y = padding + (powerup.y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-        
-        ctx.fillStyle = powerup.config.color;
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    
-    // Yemleri çiz (sadece büyük yemleri)
-    gameState.foods.forEach(food => {
-        if (food.type === 'DEAD_SNAKE') {
-            const x = padding + (food.x * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-            const y = padding + (food.y * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-            
-            ctx.fillStyle = GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.COLOR;
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    });
-    
-    // Diğer oyuncuları çiz
-    gameState.otherPlayers.forEach(player => {
-        if (player.snake && player.snake.length > 0) {
-            const head = player.snake[0];
-            const x = padding + (head.x * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-            const y = padding + (head.y * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-            
-            // Oyuncu izi
-            ctx.strokeStyle = player.color;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            for (let i = 1; i < Math.min(5, player.snake.length); i++) {
-                const segment = player.snake[i];
-                const segX = padding + (segment.x * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-                const segY = padding + (segment.y * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-                ctx.lineTo(segX, segY);
-            }
-            ctx.stroke();
-            
-            // Oyuncu başı
-            ctx.fillStyle = player.color;
-            ctx.beginPath();
-            ctx.arc(x, y, 3, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    });
-    
-    // Yerel oyuncuyu çiz
-    if (gameState.localPlayer && gameState.localPlayer.snake.length > 0) {
-        const head = gameState.localPlayer.snake[0];
-        const x = padding + (head.x * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-        const y = padding + (head.y * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-        
-        // Görüş alanı
-        ctx.strokeStyle = 'rgba(0, 255, 0, 0.2)';
-        ctx.beginPath();
-        ctx.arc(x, y, GAME_CONFIG.RENDER_DISTANCE * scaleX, 0, Math.PI * 2);
-        ctx.stroke();
-        
-        // Oyuncu izi
-        ctx.strokeStyle = gameState.localPlayer.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        for (let i = 1; i < Math.min(5, gameState.localPlayer.snake.length); i++) {
-            const segment = gameState.localPlayer.snake[i];
-            const segX = padding + (segment.x * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * scaleX;
-            const segY = padding + (segment.y * GAME_CONFIG.GRID_SIZE - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * scaleY;
-            ctx.lineTo(segX, segY);
-        }
-        ctx.stroke();
-        
-        // Oyuncu başı
-        ctx.fillStyle = gameState.localPlayer.color;
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    
-    // Aktif power-up'ları göster
-    let powerupY = padding + minimapSize + 10;
-    activePowerups.forEach((powerup, id) => {
-        const timeLeft = Math.max(0, (powerup.startTime + powerup.duration - Date.now()) / 1000);
-        const config = GAME_CONFIG.POWERUPS[powerup.type];
-        
-        ctx.fillStyle = config.color;
-        ctx.fillRect(padding, powerupY, 20, 20);
-        
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px Arial';
-        ctx.fillText(`${Math.ceil(timeLeft)}s`, padding + 25, powerupY + 15);
-        
-        powerupY += 25;
-    });
-    
-    ctx.restore();
-}
+// Mini-map ile ilgili tüm kodları kaldır
+// Örnek: minimap çizimi, güncelleme vb. fonksiyonlar silinecek
 
 // Grid çizimi
 function drawGrid() {
@@ -1434,4 +1299,27 @@ function removePowerup(powerupId) {
     }
     
     activePowerups.delete(powerupId);
-} 
+}
+
+// Skor tablosunu güncelleme fonksiyonu
+function updateScoreboard(players) {
+    const scoreBoard = document.getElementById('scoreBoard');
+    const sortedPlayers = Array.from(Object.values(players))
+        .sort((a, b) => b.score - a.score);
+
+    let html = '<h3 style="color: #0ff; margin-bottom: 10px;">Skor Tablosu</h3>';
+    sortedPlayers.forEach(player => {
+        html += `<div class="score-item">${player.username}: ${player.score}</div>`;
+    });
+    scoreBoard.innerHTML = html;
+}
+
+// Oyunu başlatma
+document.getElementById('startButton').addEventListener('click', () => {
+    const username = document.getElementById('usernameInput').value.trim();
+    if (username) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
+        startGame(username);
+    }
+}); 

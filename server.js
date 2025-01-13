@@ -93,36 +93,24 @@ io.on('connection', (socket) => {
     connectedClients.add(socket.id);
     console.log('Aktif oyuncu sayısı:', connectedClients.size);
     
-    // Oyuncu katılma
-    socket.on('playerJoin', (data) => {
+    socket.on('join', (username) => {
         const player = {
             id: socket.id,
-            name: data.name,
-            color: data.color,
-            snake: [
-                { x: data.position.x, y: data.position.y },
-                { x: data.position.x - 1, y: data.position.y },
-                { x: data.position.x - 2, y: data.position.y }
-            ],
-            score: 0
+            username: username,
+            snake: [],
+            score: 0,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            powerups: new Set()
         };
         
         gameState.players.set(socket.id, player);
+        socket.emit('gameState', {
+            players: Array.from(gameState.players.values()),
+            foods: Array.from(gameState.foods),
+            powerups: Array.from(gameState.powerups)
+        });
         
-        // Yeni oyuncuya mevcut durumu gönder
-        socket.emit('foodSpawned', Array.from(gameState.foods));
-        
-        // Diğer oyunculara yeni oyuncuyu bildir
-        socket.broadcast.emit('playerJoined', player);
-        
-        // Yeni oyuncuya diğer oyuncuları gönder
-        for (const [id, otherPlayer] of gameState.players) {
-            if (id !== socket.id) {
-                socket.emit('playerJoined', otherPlayer);
-            }
-        }
-        
-        updateLeaderboard();
+        io.emit('playerJoined', Array.from(gameState.players.values()));
     });
     
     // Oyuncu hareketi

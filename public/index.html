@@ -1,249 +1,105 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neon Snake</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            background-color: #1a1a1a;
-            font-family: 'Courier New', monospace;
-            color: #0f0;
-            text-shadow: 0 0 5px #0f0;
-            touch-action: none;
+            background-color: #000;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 100vh;
-        }
-
-        #logo {
-            font-size: 5em;
-            font-weight: bold;
-            margin-bottom: 30px;
-            text-align: center;
-            background: linear-gradient(45deg, #0f0, #0ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-            font-family: Arial, sans-serif;
-        }
-
-        #game-container {
-            display: none;
-            position: relative;
-            width: 100vw;
+            align-items: center;
             height: 100vh;
-        }
-
-        #menu-container {
-            text-align: center;
-            padding: 20px;
-            border-radius: 10px;
-            background: rgba(0, 255, 0, 0.1);
-            border: 2px solid #0f0;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-        }
-
-        #nickname {
-            width: 300px;
-            padding: 15px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 25px;
-            background: rgba(0, 255, 0, 0.2);
+            font-family: 'Arial', sans-serif;
             color: #fff;
-            font-size: 18px;
+        }
+        #loginScreen {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid #0ff;
+            box-shadow: 0 0 20px #0ff;
             text-align: center;
+        }
+        #loginScreen h1 {
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+        }
+        #usernameInput {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #0ff;
+            padding: 0.8rem;
+            color: #fff;
+            border-radius: 5px;
+            width: 250px;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
             outline: none;
             transition: all 0.3s ease;
         }
-
-        #nickname:focus {
-            background: rgba(0, 255, 0, 0.3);
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        #usernameInput:focus {
+            box-shadow: 0 0 15px #0ff;
         }
-
-        #play-button {
-            padding: 15px 50px;
-            margin-top: 20px;
+        #startButton {
+            background: #0ff;
+            color: #000;
             border: none;
-            border-radius: 25px;
-            background: linear-gradient(45deg, #0f0, #0ff);
-            color: #fff;
-            font-size: 20px;
+            padding: 1rem 2rem;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
+            font-size: 1.2rem;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
-
-        #play-button:hover {
+        #startButton:hover {
+            background: #fff;
+            box-shadow: 0 0 20px #fff;
             transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
         }
-
-        #gameCanvas {
+        #gameScreen {
             display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        #gameCanvas {
             width: 100%;
             height: 100%;
-            touch-action: none;
+            background-color: #001800;
         }
-
-        .game-info {
-            display: none;
-        }
-
-        .info-box {
-            display: none;
-        }
-
-        #playerList {
-            position: fixed;
-            right: 10px;
+        #scoreBoard {
+            position: absolute;
             top: 10px;
-            background: rgba(0, 0, 0, 0.3);
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid rgba(0, 255, 0, 0.5);
-            font-size: 0.9em;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 90;
-            min-width: 200px;
-            backdrop-filter: blur(5px);
+            border: 1px solid #0ff;
+            color: #fff;
         }
-
-        #controls {
-            display: none !important;
-        }
-
-        .control-btn {
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 255, 0, 0.2);
-            border: 1px solid #0f0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: #0f0;
-            cursor: pointer;
-            user-select: none;
-            touch-action: none;
-        }
-
-        .control-btn:active {
-            background: rgba(0, 255, 0, 0.4);
-            transform: scale(0.95);
-        }
-
-        #message {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #0f0;
-            text-align: center;
-            z-index: 100;
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            #logo {
-                font-size: 3em;
-            }
-
-            #nickname {
-                width: 250px;
-            }
-
-            .game-info {
-                font-size: 0.8em;
-                padding: 5px;
-                gap: 5px;
-                bottom: 10px;
-                right: 10px;
-            }
-            
-            .info-box {
-                padding: 3px 6px;
-            }
-
-            #controls {
-                display: none !important;
-            }
-
-            .control-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-
-            #up { grid-area: up; }
-            #left { grid-area: left; }
-            #right { grid-area: right; }
-            #down { grid-area: down; }
-
-            #playerList {
-                font-size: 0.8em;
-                max-height: 120px;
-                right: 5px;
-                top: 5px;
-                min-width: 150px;
-                background: rgba(0, 0, 0, 0.5);
-            }
+        .score-item {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #fff;
+            text-shadow: 0 0 5px #0ff;
         }
     </style>
 </head>
 <body>
-    <div id="menu-container">
-        <div id="logo">NEON SNAKE</div>
-        <input type="text" id="nickname" placeholder="Kullanıcı Adı" maxlength="15">
+    <div id="loginScreen">
+        <h1>NEON SNAKE</h1>
+        <input type="text" id="usernameInput" placeholder="Kullanıcı Adı" maxlength="15">
         <br>
-        <button id="play-button">OYNA</button>
+        <button id="startButton">OYUNA BAŞLA</button>
     </div>
-
-    <div id="game-container">
-        <div class="game-info">
-            <div class="info-box" id="score">SKOR: 0</div>
-            <div class="info-box" id="level">SEVİYE: 1</div>
-            <div class="info-box" id="players">OYUNCULAR: 1</div>
-        </div>
-        
-        <div id="connectionStatus" style="display: none; position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(255, 0, 0, 0.2); color: #f00; padding: 10px; border-radius: 5px; border: 1px solid #f00; z-index: 1000; text-align: center;"></div>
-        
+    
+    <div id="gameScreen">
         <canvas id="gameCanvas"></canvas>
-        <div id="playerList"></div>
-
-        <div id="controls">
-            <button class="control-btn" id="up">↑</button>
-            <button class="control-btn" id="left">←</button>
-            <button class="control-btn" id="right">→</button>
-            <button class="control-btn" id="down">↓</button>
-        </div>
+        <div id="scoreBoard"></div>
     </div>
-
-    <div id="message"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
