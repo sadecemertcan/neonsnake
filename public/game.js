@@ -243,6 +243,14 @@ function startGame(nickname) {
         platform: gameState.platform
     });
 
+    // İlk yemleri oluştur
+    for (let i = 0; i < 20; i++) {
+        spawnFood();
+    }
+
+    // Her 3 saniyede bir yeni yem oluştur
+    setInterval(spawnFood, 3000);
+
     // Oyun döngüsünü başlat
     if (!gameState.gameLoop) {
         gameState.gameLoop = requestAnimationFrame(gameLoop);
@@ -251,27 +259,21 @@ function startGame(nickname) {
 
 // Yem oluşturma fonksiyonu
 function spawnFood() {
-    const pos = getRandomPosition();
-    const randomValue = Math.random();
-    let foodType = 'NORMAL';
-    
-    // %85 normal yem, %10 AI yem, %5 büyük yem
-    if (randomValue > 0.95) {
-        foodType = 'DEAD_SNAKE';
-    } else if (randomValue > 0.85) {
-        foodType = 'AI';
-    }
-    
-    const foodConfig = GAME_CONFIG.FOOD_TYPES[foodType];
-    
+    // Dünya sınırları içinde rastgele bir pozisyon seç
+    const pos = {
+        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
+        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+    };
+
     const food = {
         x: Math.floor(pos.x / GAME_CONFIG.GRID_SIZE),
         y: Math.floor(pos.y / GAME_CONFIG.GRID_SIZE),
-        type: foodType,
-        points: foodConfig.POINTS,
-        size: foodConfig.SIZE,
-        color: foodConfig.COLOR,
-        spawnTime: Date.now()
+        type: 'NORMAL',
+        points: 1,
+        size: GAME_CONFIG.FOOD_TYPES.NORMAL.SIZE,
+        color: GAME_CONFIG.FOOD_TYPES.NORMAL.COLOR,
+        spawnTime: Date.now(),
+        id: Date.now() + Math.random()
     };
     
     gameState.foods.add(food);
@@ -675,8 +677,8 @@ function checkFoodCollision() {
             socket.emit('foodEaten', { foodId: food.id, playerId: socket.id });
             gameState.foods.delete(food);
             
-            // Skoru güncelle
-            gameState.localPlayer.score += food.points || GAME_CONFIG.FOOD_TYPES.NORMAL.POINTS;
+            // Skoru güncelle (her yem 1 puan)
+            gameState.localPlayer.score += 1;
             
             // Yılanı büyüt
             const tail = gameState.localPlayer.snake[gameState.localPlayer.snake.length - 1];
