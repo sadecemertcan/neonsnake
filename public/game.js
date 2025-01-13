@@ -14,9 +14,9 @@ const GAME_CONFIG = {
     CAMERA_SMOOTH_FACTOR: 0.05,
     COLLISION_DISTANCE: 2,
     FOOD_SPAWN_INTERVAL: 500,
-    FOOD_SPAWN_RADIUS: 5000,
+    FOOD_SPAWN_RADIUS: 2000,
     NEON_GLOW: 15,
-    FOOD_COUNT: 1000,
+    FOOD_COUNT: 2000,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
@@ -47,10 +47,10 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -Infinity,
-        MAX_X: Infinity,
-        MIN_Y: -Infinity,
-        MAX_Y: Infinity
+        MIN_X: -5000,
+        MAX_X: 5000,
+        MIN_Y: -5000,
+        MAX_Y: 5000
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -301,16 +301,18 @@ function spawnFood(nearPlayer = false) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
         
+        // Pozisyonu sınırlar içinde tut
         pos = {
-            x: playerHead.x + Math.cos(angle) * distance,
-            y: playerHead.y + Math.sin(angle) * distance
+            x: Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X,
+                playerHead.x + Math.cos(angle) * distance)),
+            y: Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y,
+                playerHead.y + Math.sin(angle) * distance))
         };
     } else {
-        // Tamamen rastgele bir konum seç
-        const range = 50000; // Çok daha geniş bir alan
+        // Sınırlar içinde rastgele bir konum seç
         pos = {
-            x: (Math.random() - 0.5) * range,
-            y: (Math.random() - 0.5) * range
+            x: GAME_CONFIG.WORLD_BOUNDS.MIN_X + Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X),
+            y: GAME_CONFIG.WORLD_BOUNDS.MIN_Y + Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y)
         };
     }
 
@@ -352,7 +354,7 @@ function startFoodSpawnSystem() {
     setInterval(() => {
         if (gameState.gameStarted && gameState.localPlayer) {
             // Her zaman yeni yemler oluştur
-            for (let i = 0; i < 10; i++) { // Her seferinde 10 yeni yem
+            for (let i = 0; i < 20; i++) { // Her seferinde 20 yeni yem
                 spawnFood(Math.random() > 0.5); // %50 şansla oyuncunun etrafında
             }
             
@@ -361,6 +363,13 @@ function startFoodSpawnSystem() {
             const maxDistance = GAME_CONFIG.FOOD_SPAWN_RADIUS * 2;
             
             gameState.foods.forEach(food => {
+                // Sınırlar dışındaki yemleri temizle
+                if (food.x < GAME_CONFIG.WORLD_BOUNDS.MIN_X || food.x > GAME_CONFIG.WORLD_BOUNDS.MAX_X ||
+                    food.y < GAME_CONFIG.WORLD_BOUNDS.MIN_Y || food.y > GAME_CONFIG.WORLD_BOUNDS.MAX_Y) {
+                    gameState.foods.delete(food);
+                }
+                
+                // Oyuncudan çok uzaktaki yemleri temizle
                 const distance = Math.sqrt(
                     Math.pow((food.x - playerPos.x), 2) + 
                     Math.pow((food.y - playerPos.y), 2)
