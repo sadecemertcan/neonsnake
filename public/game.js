@@ -224,6 +224,7 @@ function startGame(nickname) {
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0,
+            foodEaten: 0,
             platform: gameState.platform
         },
         otherPlayers: new Map(),
@@ -241,6 +242,7 @@ function startGame(nickname) {
         color: DEFAULT_SNAKE_COLOR,
         position: gridStartPos,
         score: 0,
+        foodEaten: 0,
         platform: gameState.platform
     });
 
@@ -249,8 +251,8 @@ function startGame(nickname) {
         spawnFood();
     }
 
-    // Her 3 saniyede bir yeni yem oluştur
-    setInterval(spawnFood, 3000);
+    // Her 10 saniyede bir yeni yem oluştur
+    setInterval(spawnFood, 10000);
 
     // Oyun döngüsünü başlat
     if (!gameState.gameLoop) {
@@ -260,9 +262,9 @@ function startGame(nickname) {
 
 // Yem oluşturma fonksiyonu
 function spawnFood() {
-    const SAFE_MARGIN = 10; // Sınırlardan güvenli mesafe
+    const SAFE_MARGIN = 50; // Sınırlardan güvenli mesafe
     
-    // Dünya sınırları içinde rastgele bir pozisyon seç
+    // Dünya sınırları içinde tamamen rastgele bir pozisyon seç
     const pos = {
         x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - 2 * SAFE_MARGIN) + 
            GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN,
@@ -280,6 +282,13 @@ function spawnFood() {
         spawnTime: Date.now(),
         id: Date.now() + Math.random()
     };
+    
+    // Yem konumunun diğer yemlerle çakışmadığından emin ol
+    for (const existingFood of gameState.foods) {
+        if (getDistance(food, existingFood) < GAME_CONFIG.GRID_SIZE * 2) {
+            return spawnFood(); // Çakışma varsa yeni pozisyon dene
+        }
+    }
     
     gameState.foods.add(food);
     socket.emit('foodSpawned', food);
@@ -704,26 +713,24 @@ function checkFoodCollision() {
             socket.emit('foodEaten', { 
                 foodId: food.id, 
                 playerId: socket.id,
-                playerScore: gameState.localPlayer.score + food.points
+                playerScore: gameState.localPlayer.score + food.points,
+                foodEaten: gameState.localPlayer.foodEaten + 1
             });
             gameState.foods.delete(food);
             
-            // Skoru güncelle
+            // Skoru ve yenilen yem sayısını güncelle
             gameState.localPlayer.score += food.points;
+            gameState.localPlayer.foodEaten += 1;
             
             // Yılanı büyüt
             const tail = gameState.localPlayer.snake[gameState.localPlayer.snake.length - 1];
             gameState.localPlayer.snake.push({ ...tail });
             
-            // Yeni yem oluştur (rastgele konumda)
-            setTimeout(() => {
-                spawnFood();
-            }, Math.random() * 2000 + 1000); // 1-3 saniye arası rastgele sürede
-            
             // Skor güncellemesini gönder
             socket.emit('scoreUpdate', {
                 id: socket.id,
-                score: gameState.localPlayer.score
+                score: gameState.localPlayer.score,
+                foodEaten: gameState.localPlayer.foodEaten
             });
         }
     }
@@ -1164,8 +1171,9 @@ function updateLeaderboard(leaderboard) {
         const medal = index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
         const isLocal = player.id === socket.id ? ' (Sen)' : '';
         const platformIcon = player.platform === 'mobile' ? '📱' : '💻';
+        const foodCount = player.foodEaten ? ` 🍎${player.foodEaten}` : '';
         
-        div.textContent = `${crown}${medal}${platformIcon} ${player.name}${isLocal}: ${player.score} puan`;
+        div.textContent = `${crown}${medal}${platformIcon} ${player.name}${isLocal}: ${player.score} puan${foodCount}`;
         playerList.appendChild(div);
     });
 }
