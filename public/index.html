@@ -213,13 +213,61 @@
                 background: rgba(0, 0, 0, 0.5);
             }
         }
+
+        #color-selection {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        #color-selection h3 {
+            color: #fff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .color-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+        
+        .color-option.selected {
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+        }
     </style>
 </head>
 <body>
     <div id="menu-container">
-        <div id="logo">NEON SNAKE</div>
-        <input type="text" id="nickname" placeholder="Kullanıcı Adı" maxlength="15">
-        <br>
+        <h1 id="logo">NEON SNAKE</h1>
+        <input type="text" id="nickname" placeholder="Kullanıcı Adı" maxlength="20">
+        
+        <div id="color-selection">
+            <h3>Yılan Rengi Seç</h3>
+            <div class="color-options">
+                <div class="color-option" data-color="#ff0000" style="background: linear-gradient(45deg, #ff0000, #ff6666)"></div>
+                <div class="color-option" data-color="#00ff00" style="background: linear-gradient(45deg, #00ff00, #66ff66)"></div>
+                <div class="color-option" data-color="#0000ff" style="background: linear-gradient(45deg, #0000ff, #6666ff)"></div>
+                <div class="color-option" data-color="#ff00ff" style="background: linear-gradient(45deg, #ff00ff, #ff66ff)"></div>
+                <div class="color-option" data-color="#ffff00" style="background: linear-gradient(45deg, #ffff00, #ffff66)"></div>
+            </div>
+        </div>
+        
         <button id="play-button">OYNA</button>
     </div>
 

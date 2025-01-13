@@ -15,7 +15,8 @@ const GAME_CONFIG = {
     COLLISION_DISTANCE: 2,
     FOOD_SPAWN_INTERVAL: 3000,
     NEON_GLOW: 15,
-    FOOD_COUNT: 25,
+    FOOD_COUNT: 50,
+    FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
             SIZE: 0.8,
@@ -158,11 +159,33 @@ socket.on('disconnect', () => {
     document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
 });
 
+// Renk seçimi için değişken
+let selectedColor = null;
+
+// Renk seçimi için event listener'ları ekle
+document.querySelectorAll('.color-option').forEach(option => {
+    option.addEventListener('click', () => {
+        // Önceki seçimi kaldır
+        document.querySelector('.color-option.selected')?.classList.remove('selected');
+        // Yeni seçimi işaretle
+        option.classList.add('selected');
+        // Seçilen rengi kaydet
+        selectedColor = option.dataset.color;
+    });
+});
+
+// İlk rengi varsayılan olarak seç
+document.querySelector('.color-option').click();
+
 // Oyun başlatma butonunu dinle
 document.getElementById('play-button').addEventListener('click', () => {
     const nickname = document.getElementById('nickname').value.trim();
     if (!nickname) {
         alert('Lütfen bir kullanıcı adı girin!');
+        return;
+    }
+    if (!selectedColor) {
+        alert('Lütfen bir renk seçin!');
         return;
     }
     document.getElementById('menu-container').style.display = 'none';
@@ -201,9 +224,8 @@ function startGame(nickname) {
     
     console.log('Oyun başlatılıyor...');
     
-    // Her seferinde farklı bir renk seç
-    const hue = Math.floor(Math.random() * 360);
-    const randomColor = `hsl(${hue}, 100%, 50%)`;
+    // Seçilen rengi kullan
+    const snakeColor = selectedColor;
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -226,7 +248,7 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: randomColor,
+            color: snakeColor,
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -243,7 +265,7 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: randomColor,
+        color: snakeColor,
         position: gridStartPos,
         score: 0
     });
@@ -284,7 +306,7 @@ function spawnFood() {
         points: foodConfig.POINTS,
         size: foodConfig.SIZE,
         color: foodConfig.COLOR,
-        spawnTime: Date.now() // Animasyon için zaman damgası
+        spawnTime: Date.now()
     };
     
     gameState.foods.add(food);
