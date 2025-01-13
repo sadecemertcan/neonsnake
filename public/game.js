@@ -585,50 +585,14 @@ function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = '
 
 // Oyun döngüsünü güncelle
 function gameLoop(currentTime) {
-    if (!gameState.gameStarted) return;
+    if (!gameState.gameStarted || !gameState.localPlayer) return;
 
     if (!lastTime) lastTime = currentTime;
     
     const deltaTime = currentTime - lastTime;
     if (deltaTime >= GAME_CONFIG.INITIAL_SPEED) {
         updateGame();
-        
-        // Canvas'ı temizle
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Kamerayı güncelle
-        camera.followPlayer();
-        
-        // Arkaplanı çiz
-        drawBackground();
-        
-        // Dünya sınırlarını çiz
-        drawWorldBorders();
-        
-        // Yemleri çiz
-        gameState.foods.forEach(food => {
-            if (isInViewArea(food)) {
-                drawFood(food);
-            }
-        });
-        
-        // Diğer oyuncuları çiz
-        gameState.otherPlayers.forEach(player => {
-            if (isInViewArea(player.snake[0])) {
-                drawSnake(player.snake, player.color, player.size, player.skin);
-            }
-        });
-        
-        // Yerel oyuncuyu çiz
-        if (gameState.localPlayer) {
-            drawSnake(
-                gameState.localPlayer.snake,
-                gameState.localPlayer.color,
-                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
-                gameState.localPlayer.skin || 'DEFAULT'
-            );
-        }
-        
+        render(currentTime);
         lastTime = currentTime;
     }
     
@@ -841,7 +805,12 @@ function draw() {
     
     // Yerel oyuncuyu çiz
     if (gameState.localPlayer) {
-        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE, gameState.localPlayer.skin || 'DEFAULT');
+        drawSnake(
+            gameState.localPlayer.snake,
+            gameState.localPlayer.color,
+            gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
+            gameState.localPlayer.skin || 'DEFAULT'
+        );
     }
     
     offscreenCtx.restore();
@@ -925,10 +894,7 @@ function interpolateColors(color1, color2, factor) {
 
 // Mini-map ile ilgili tüm kodları kaldır
 function render(timestamp) {
-    if (!gameState.localPlayer) return;
-    
-    const deltaTime = timestamp - lastTime;
-    lastTime = timestamp;
+    if (!gameState.localPlayer || !ctx) return;
     
     // Canvas boyutlarını güncelle
     canvas.width = window.innerWidth;
@@ -938,20 +904,25 @@ function render(timestamp) {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Kamera takibi
-    camera.followPlayer();
+    // Kamera pozisyonunu hesapla
+    const cameraPos = {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    };
     
-    // Grid çiz (ekran içinde)
+    // Grid çiz
+    ctx.save();
     drawGrid(ctx);
+    ctx.restore();
     
-    // Yemleri çiz (ekran içindekiler)
+    // Yemleri çiz
     gameState.foods.forEach(food => {
         if (!isOffscreen(food.x, food.y)) {
-            drawFood(food, camera);
+            drawFood(food, cameraPos);
         }
     });
     
-    // Diğer yılanları çiz (ekran içindekiler)
+    // Diğer yılanları çiz
     gameState.otherPlayers.forEach(player => {
         if (!isOffscreen(player.snake[0].x, player.snake[0].y)) {
             drawSnake(player.snake, player.color);
@@ -963,8 +934,6 @@ function render(timestamp) {
     
     // Skor tablosunu çiz
     drawScoreboard(ctx);
-    
-    requestAnimationFrame(render);
 }
 
 // Oyuncu Listesini Güncelle
@@ -1130,14 +1099,20 @@ function updateLeaderboard(leaderboard) {
 
 // Canvas boyutunu ayarla ve responsive yap
 function resizeCanvas() {
+    if (!canvas || !ctx) return;
+    
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    offscreenCanvas.width = window.innerWidth;
-    offscreenCanvas.height = window.innerHeight;
+    
+    if (offscreenCanvas) {
+        offscreenCanvas.width = window.innerWidth;
+        offscreenCanvas.height = window.innerHeight;
+    }
+    
     GAME_CONFIG.GRID_SIZE = Math.min(canvas.width, canvas.height) / GAME_CONFIG.GRID_COUNT;
 
     if (gameState.gameStarted) {
-        draw();
+        render(performance.now());
     }
 }
 
@@ -1438,25 +1413,27 @@ function drawFoods(ctx, cameraPos) {
     });
 }
 
-function drawGrid(ctx) {
+function drawGrid(context) {
+    if (!context) return;
+    
     const gridSize = 50;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
+    context.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    context.lineWidth = 1;
 
     // Yatay çizgiler
     for (let y = 0; y < canvas.height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(canvas.width, y);
+        context.stroke();
     }
 
     // Dikey çizgiler
     for (let x = 0; x < canvas.width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, canvas.height);
+        context.stroke();
     }
 }
 
@@ -1528,6 +1505,8 @@ function isOffscreen(x, y) {
 
 // Dünya koordinatlarını ekran koordinatlarına çevir
 function worldToScreen(x, y, cameraPos) {
+    if (!cameraPos) return { x: 0, y: 0 };
+    
     return {
         x: (x - cameraPos.x) * GAME_CONFIG.CAMERA_ZOOM + canvas.width / 2,
         y: (y - cameraPos.y) * GAME_CONFIG.CAMERA_ZOOM + canvas.height / 2
