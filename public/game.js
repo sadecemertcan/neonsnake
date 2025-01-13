@@ -1,6 +1,6 @@
-// Canvas ve Ses Öğeleri
+// Canvas ve Context'i global olarak tanımla
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext('2d', { alpha: false });
 
 // Oyun Sabitleri
 const GAME_CONFIG = {
@@ -13,33 +13,33 @@ const GAME_CONFIG = {
     MIN_CAMERA_ZOOM: 1.2,
     CAMERA_SMOOTH_FACTOR: 0.05,
     COLLISION_DISTANCE: 2,
-    FOOD_SPAWN_INTERVAL: 2000,
-    FOOD_SPAWN_RADIUS: 500,
+    FOOD_SPAWN_INTERVAL: 1000,
+    FOOD_SPAWN_RADIUS: 2000,
     NEON_GLOW: 15,
-    FOOD_COUNT: 30,
+    FOOD_COUNT: 200,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
-            SIZE: 0.8,
+            SIZE: 1.2,
             POINTS: 1,
             COLOR: '#ffffff',
             PULSE_SPEED: 2,
-            PULSE_SCALE: 0.2
+            PULSE_SCALE: 0.3
         },
         DEAD_SNAKE: {
-            SIZE: 1.2,
+            SIZE: 1.5,
             MIN_POINTS: 5,
             MAX_POINTS: 20,
             COLOR: '#ffff00',
             PULSE_SPEED: 3,
-            PULSE_SCALE: 0.3
+            PULSE_SCALE: 0.4
         },
         AI: {
-            SIZE: 1,
+            SIZE: 1.3,
             POINTS: 3,
             COLOR: '#00ffff',
             PULSE_SPEED: 4,
-            PULSE_SCALE: 0.25
+            PULSE_SCALE: 0.35
         }
     },
     RENDER_DISTANCE: 50,
@@ -307,7 +307,7 @@ function spawnFood(nearPlayer = false) {
         };
     } else {
         // Tamamen rastgele bir konum seç
-        const range = 10000;
+        const range = 20000; // Daha geniş bir alan
         pos = {
             x: (Math.random() - 0.5) * range,
             y: (Math.random() - 0.5) * range
@@ -317,9 +317,10 @@ function spawnFood(nearPlayer = false) {
     const randomValue = Math.random();
     let foodType = 'NORMAL';
     
-    if (randomValue > 0.95) {
+    // Yem tiplerinin olasılıklarını artır
+    if (randomValue > 0.90) { // %10 şans
         foodType = 'DEAD_SNAKE';
-    } else if (randomValue > 0.85) {
+    } else if (randomValue > 0.75) { // %15 şans
         foodType = 'AI';
     }
     
@@ -340,7 +341,7 @@ function spawnFood(nearPlayer = false) {
     return food;
 }
 
-// Düzenli yem oluşturma sistemini ekle
+// Düzenli yem oluşturma sistemini güncelle
 function startFoodSpawnSystem() {
     // Başlangıç yemlerini oluştur
     for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
@@ -350,7 +351,14 @@ function startFoodSpawnSystem() {
     // Düzenli aralıklarla yem oluştur
     setInterval(() => {
         if (gameState.gameStarted && gameState.localPlayer) {
-            spawnFood(true); // Yılanın etrafında yem oluştur
+            // Mevcut yem sayısını kontrol et
+            if (gameState.foods.size < GAME_CONFIG.FOOD_COUNT) {
+                // Eksik yem sayısı kadar yeni yem oluştur
+                const missingFoods = GAME_CONFIG.FOOD_COUNT - gameState.foods.size;
+                for (let i = 0; i < missingFoods; i++) {
+                    spawnFood(true); // Yılanın etrafında yem oluştur
+                }
+            }
         }
     }, GAME_CONFIG.FOOD_SPAWN_INTERVAL);
 }
