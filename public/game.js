@@ -701,15 +701,24 @@ function checkFoodCollision() {
     for (const food of gameState.foods) {
         if (getDistance(head, food) < GAME_CONFIG.FOOD_SIZE + GAME_CONFIG.COLLISION_DISTANCE) {
             // Yemi sil ve sunucuya bildir
-            socket.emit('foodEaten', { foodId: food.id, playerId: socket.id });
+            socket.emit('foodEaten', { 
+                foodId: food.id, 
+                playerId: socket.id,
+                playerScore: gameState.localPlayer.score + food.points
+            });
             gameState.foods.delete(food);
             
             // Skoru güncelle
-            gameState.localPlayer.score += 1;
+            gameState.localPlayer.score += food.points;
             
             // Yılanı büyüt
             const tail = gameState.localPlayer.snake[gameState.localPlayer.snake.length - 1];
             gameState.localPlayer.snake.push({ ...tail });
+            
+            // Yeni yem oluştur (rastgele konumda)
+            setTimeout(() => {
+                spawnFood();
+            }, Math.random() * 2000 + 1000); // 1-3 saniye arası rastgele sürede
             
             // Skor güncellemesini gönder
             socket.emit('scoreUpdate', {
@@ -720,32 +729,34 @@ function checkFoodCollision() {
     }
 }
 
-// Yem düşürme fonksiyonu
+// Yem düşürme fonksiyonunu güncelle
 function dropFood(snake) {
-    const foodCount = Math.min(snake.length, 10);
-    const SAFE_MARGIN = 50;
+    const foodCount = Math.min(snake.length, 10); // En fazla 10 yem düşür
     
     for (let i = 0; i < foodCount; i++) {
-        // Ölen yılanın boyutuna göre yem değeri hesapla
-        const points = Math.floor(
-            GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.MIN_POINTS + 
-            (snake.length / 10) * (GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.MAX_POINTS - GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.MIN_POINTS)
-        );
+        const segment = snake[i];
+        const offset = {
+            x: (Math.random() - 0.5) * 20, // -10 ile +10 arası rastgele offset
+            y: (Math.random() - 0.5) * 20
+        };
         
         const food = {
-            x: (Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - 2 * SAFE_MARGIN) + 
-               GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN) / GAME_CONFIG.GRID_SIZE,
-            y: (Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - 2 * SAFE_MARGIN) + 
-               GAME_CONFIG.WORLD_BOUNDS.MIN_Y + SAFE_MARGIN) / GAME_CONFIG.GRID_SIZE,
+            x: segment.x + offset.x,
+            y: segment.y + offset.y,
             type: 'DEAD_SNAKE',
-            points: points,
-            size: GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.SIZE
+            points: Math.ceil(snake.length / foodCount), // Yılan uzunluğuna göre puan
+            size: GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.SIZE,
+            color: GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.COLOR,
+            spawnTime: Date.now(),
+            id: Date.now() + Math.random()
         };
 
-        if (food.x * GAME_CONFIG.GRID_SIZE >= GAME_CONFIG.WORLD_BOUNDS.MIN_X &&
-            food.x * GAME_CONFIG.GRID_SIZE <= GAME_CONFIG.WORLD_BOUNDS.MAX_X &&
-            food.y * GAME_CONFIG.GRID_SIZE >= GAME_CONFIG.WORLD_BOUNDS.MIN_Y &&
-            food.y * GAME_CONFIG.GRID_SIZE <= GAME_CONFIG.WORLD_BOUNDS.MAX_Y) {
+        // Sınırlar içinde olduğunu kontrol et
+        if (food.x >= GAME_CONFIG.WORLD_BOUNDS.MIN_X && 
+            food.x <= GAME_CONFIG.WORLD_BOUNDS.MAX_X && 
+            food.y >= GAME_CONFIG.WORLD_BOUNDS.MIN_Y && 
+            food.y <= GAME_CONFIG.WORLD_BOUNDS.MAX_Y) {
+            gameState.foods.add(food);
             socket.emit('foodSpawned', food);
         }
     }
@@ -1152,8 +1163,9 @@ function updateLeaderboard(leaderboard) {
         const crown = index === 0 ? '👑 ' : '';
         const medal = index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
         const isLocal = player.id === socket.id ? ' (Sen)' : '';
+        const platformIcon = player.platform === 'mobile' ? '📱' : '💻';
         
-        div.textContent = `${crown}${medal}${player.name}${isLocal}: ${player.score}`;
+        div.textContent = `${crown}${medal}${platformIcon} ${player.name}${isLocal}: ${player.score} puan`;
         playerList.appendChild(div);
     });
 }
