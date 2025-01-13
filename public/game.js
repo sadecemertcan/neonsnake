@@ -47,13 +47,10 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -500,
-        MAX_X: 500,
-        MIN_Y: -500,
-        MAX_Y: 500
-    },
-    SAFE_ZONE: {
-        MARGIN: 5 // Güvenli bölge sınırı
+        MIN_X: -1000,
+        MAX_X: 1000,
+        MIN_Y: -1000,
+        MAX_Y: 1000
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -163,59 +160,19 @@ socket.on('disconnect', () => {
     document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
 });
 
-// Renk seçimi için değişken
-let selectedColor = null;
-
-// Renk seçimi için event listener'ları ekle
-document.querySelectorAll('.color-option').forEach(option => {
-    option.addEventListener('click', () => {
-        // Önceki seçimi kaldır
-        document.querySelector('.color-option.selected')?.classList.remove('selected');
-        // Yeni seçimi işaretle
-        option.classList.add('selected');
-        // Seçilen rengi kaydet
-        selectedColor = option.dataset.color;
-    });
-});
-
-// İlk rengi varsayılan olarak seç
-document.querySelector('.color-option').click();
-
-// Oyun başlatma butonunu dinle
-document.getElementById('play-button').addEventListener('click', () => {
-    const nickname = document.getElementById('nickname').value.trim();
-    if (!nickname) {
-        alert('Lütfen bir kullanıcı adı girin!');
-        return;
-    }
-    if (!selectedColor) {
-        alert('Lütfen bir renk seçin!');
-        return;
-    }
-    document.getElementById('menu-container').style.display = 'none';
-    document.getElementById('game-container').style.display = 'block';
-    document.getElementById('gameCanvas').style.display = 'block';
-    startGame(nickname);
-});
-
-// Yapay Zeka Yılanları
-const AI_SNAKES = [
-    { name: 'NeonHunter', color: '#ff0000' },
-    { name: 'CyberSnake', color: '#00ff00' },
-    { name: 'VirtualViper', color: '#0000ff' },
-    { name: 'PixelPython', color: '#ff00ff' }
-];
-
-// Rastgele pozisyon oluştur
-function getRandomPosition() {
-    // Güvenli bölge sınırları içinde pozisyon oluştur
-    const safeMargin = GAME_CONFIG.SAFE_ZONE.MARGIN;
-    const bounds = GAME_CONFIG.WORLD_BOUNDS;
-    
-    return {
-        x: Math.random() * (bounds.MAX_X - bounds.MIN_X - 2 * safeMargin) + bounds.MIN_X + safeMargin,
-        y: Math.random() * (bounds.MAX_Y - bounds.MIN_Y - 2 * safeMargin) + bounds.MIN_Y + safeMargin
-    };
+// Rastgele neon renk oluştur
+function getRandomNeonColor() {
+    const neonColors = [
+        '#ff0000', // Kırmızı
+        '#00ff00', // Yeşil
+        '#0000ff', // Mavi
+        '#ff00ff', // Mor
+        '#ffff00', // Sarı
+        '#00ffff', // Cyan
+        '#ff8800', // Turuncu
+        '#ff0088'  // Pembe
+    ];
+    return neonColors[Math.floor(Math.random() * neonColors.length)];
 }
 
 // Oyun başlatma fonksiyonunu güncelle
@@ -224,8 +181,8 @@ function startGame(nickname) {
     
     console.log('Oyun başlatılıyor...');
     
-    // Seçilen rengi kullan
-    const snakeColor = selectedColor;
+    // Rastgele bir neon renk seç
+    const snakeColor = getRandomNeonColor();
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -290,20 +247,9 @@ function spawnFood(nearPlayer = false) {
         const playerHead = gameState.localPlayer.snake[0];
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
-        
-        // Geçici pozisyon hesapla
-        const tempPos = {
+        pos = {
             x: playerHead.x + Math.cos(angle) * distance,
             y: playerHead.y + Math.sin(angle) * distance
-        };
-        
-        // Pozisyonu güvenli bölge içinde tut
-        const safeMargin = GAME_CONFIG.SAFE_ZONE.MARGIN;
-        const bounds = GAME_CONFIG.WORLD_BOUNDS;
-        
-        pos = {
-            x: Math.max(bounds.MIN_X + safeMargin, Math.min(bounds.MAX_X - safeMargin, tempPos.x)),
-            y: Math.max(bounds.MIN_Y + safeMargin, Math.min(bounds.MAX_Y - safeMargin, tempPos.y))
         };
     } else {
         pos = getRandomPosition();
@@ -321,8 +267,8 @@ function spawnFood(nearPlayer = false) {
     const foodConfig = GAME_CONFIG.FOOD_TYPES[foodType];
     
     const food = {
-        x: Math.floor(pos.x),
-        y: Math.floor(pos.y),
+        x: Math.floor(pos.x / GAME_CONFIG.GRID_SIZE),
+        y: Math.floor(pos.y / GAME_CONFIG.GRID_SIZE),
         type: foodType,
         points: foodConfig.POINTS,
         size: foodConfig.SIZE,
