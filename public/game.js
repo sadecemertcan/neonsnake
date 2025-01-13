@@ -260,10 +260,14 @@ function startGame(nickname) {
 
 // Yem oluşturma fonksiyonu
 function spawnFood() {
+    const SAFE_MARGIN = 10; // Sınırlardan güvenli mesafe
+    
     // Dünya sınırları içinde rastgele bir pozisyon seç
     const pos = {
-        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
-        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - 2 * SAFE_MARGIN) + 
+           GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN,
+        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - 2 * SAFE_MARGIN) + 
+           GAME_CONFIG.WORLD_BOUNDS.MIN_Y + SAFE_MARGIN
     };
 
     const food = {
@@ -645,41 +649,33 @@ function checkCollision() {
 
     const head = gameState.localPlayer.snake[0];
 
+    // Sınır duvarı kontrolü
+    if (head.x * GAME_CONFIG.GRID_SIZE <= GAME_CONFIG.WORLD_BOUNDS.MIN_X * GAME_CONFIG.GRID_SIZE ||
+        head.x * GAME_CONFIG.GRID_SIZE >= GAME_CONFIG.WORLD_BOUNDS.MAX_X * GAME_CONFIG.GRID_SIZE ||
+        head.y * GAME_CONFIG.GRID_SIZE <= GAME_CONFIG.WORLD_BOUNDS.MIN_Y * GAME_CONFIG.GRID_SIZE ||
+        head.y * GAME_CONFIG.GRID_SIZE >= GAME_CONFIG.WORLD_BOUNDS.MAX_Y * GAME_CONFIG.GRID_SIZE) {
+        return true;
+    }
+
     // Diğer oyuncularla çarpışma kontrolü
     for (const [id, player] of gameState.otherPlayers) {
-        // Diğer oyuncunun kafasıyla çarpışma kontrolü
-        if (player.snake && player.snake[0]) {
+        if (player.snake && player.snake.length > 0) {
+            // Diğer yılanın kafasıyla çarpışma
             const otherHead = player.snake[0];
             if (getDistance(head, otherHead) < GAME_CONFIG.COLLISION_DISTANCE) {
-                // Kafa kafaya çarpışma: Uzun olan yılan kazanır
-                if (gameState.localPlayer.snake.length > player.snake.length) {
-                    // Kazandık
-                    socket.emit('playerKilled', { 
-                        killerId: socket.id, 
-                        killedId: id,
-                        killerScore: gameState.localPlayer.score + GAME_CONFIG.KILL_POINTS
-                    });
-                    gameState.localPlayer.score += GAME_CONFIG.KILL_POINTS;
-                    return false;
-                } else {
-                    // Kaybettik
-                    socket.emit('playerDied', { 
-                        id: socket.id, 
-                        killerId: id 
-                    });
+                // Ölen yılanın yemlerini düşür
+                dropFood(gameState.localPlayer.snake);
+                socket.emit('playerDied', { id: socket.id, killerId: id });
+                return true;
+            }
+
+            // Diğer yılanın vücuduyla çarpışma
+            for (let i = 1; i < player.snake.length; i++) {
+                if (getDistance(head, player.snake[i]) < GAME_CONFIG.COLLISION_DISTANCE) {
+                    dropFood(gameState.localPlayer.snake);
+                    socket.emit('playerDied', { id: socket.id, killerId: id });
                     return true;
                 }
-            }
-        }
-
-        // Diğer oyuncunun vücuduyla çarpışma
-        for (let i = 1; i < player.snake.length; i++) {
-            if (getDistance(head, player.snake[i]) < GAME_CONFIG.COLLISION_DISTANCE) {
-                socket.emit('playerDied', { 
-                    id: socket.id, 
-                    killerId: id 
-                });
-                return true;
             }
         }
     }
@@ -687,6 +683,7 @@ function checkCollision() {
     // Kendisiyle çarpışma kontrolü
     for (let i = 1; i < gameState.localPlayer.snake.length; i++) {
         if (getDistance(head, gameState.localPlayer.snake[i]) < GAME_CONFIG.COLLISION_DISTANCE) {
+            dropFood(gameState.localPlayer.snake);
             socket.emit('playerDied', { id: socket.id });
             return true;
         }
@@ -962,8 +959,27 @@ function gameOver() {
         gameState.gameLoop = null;
     }
     
-    // Yılanın ölümünden sonra kısa bir gecikme ile anasayfaya yönlendir
-    setTimeout(() => {
+    // Ölüm mesajını göster
+    const message = document.getElementById('message');
+    message.style.display = 'block';
+    message.innerHTML = `
+        <h2 style="color: #ff0000; margin-bottom: 20px;">Öldün!</h2>
+        <p style="color: #0f0; margin-bottom: 20px;">Skor: ${gameState.localPlayer.score}</p>
+        <button id="returnButton" style="
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #0f0;
+            border-radius: 25px;
+            color: #0f0;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 10px 30px;
+            transition: all 0.3s ease;
+        ">Ana Menüye Dön</button>
+    `;
+    
+    // Ana menüye dönüş butonunu dinle
+    document.getElementById('returnButton').addEventListener('click', () => {
+        message.style.display = 'none';
         document.getElementById('game-container').style.display = 'none';
         document.getElementById('menu-container').style.display = 'block';
         document.getElementById('gameCanvas').style.display = 'none';
@@ -982,7 +998,7 @@ function gameOver() {
             isMobile: gameState.isMobile,
             platform: gameState.platform
         };
-    }, 1000); // 1 saniye gecikme
+    });
 }
 
 // Oyuncu güncellemelerini dinle
