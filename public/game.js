@@ -117,102 +117,78 @@ socket.on('disconnect', () => {
     document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
 });
 
-// Oyun başlatma butonunu dinle
-document.getElementById('play-button').addEventListener('click', () => {
+// Oyun başlatma fonksiyonu
+function startGame() {
     const nickname = document.getElementById('nickname').value.trim();
-    if (nickname) {
-        document.getElementById('menu-container').style.display = 'none';
-        document.getElementById('game-container').style.display = 'block';
-        document.getElementById('gameCanvas').style.display = 'block';
-        startGame(nickname);
+    if (!nickname) {
+        alert('Lütfen bir kullanıcı adı girin!');
+        return;
+    }
+
+    // Menüyü gizle ve oyun alanını göster
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('gameCanvas').style.display = 'block';
+    document.getElementById('minimap').style.display = 'block';
+    document.getElementById('playerList').style.display = 'block';
+
+    // Oyuncuyu başlat
+    socket.emit('join', {
+        nickname: nickname,
+        skin: skins[currentSkinIndex]
+    });
+
+    // Oyun döngüsünü başlat
+    gameStarted = true;
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+}
+
+// Görünüm seçme fonksiyonları
+function showSkinSelector() {
+    document.getElementById('skin-selector').style.display = 'flex';
+    initSkinPreview();
+}
+
+function hideSkinSelector() {
+    document.getElementById('skin-selector').style.display = 'none';
+}
+
+function selectSkin() {
+    currentSkin = skins[currentSkinIndex];
+    hideSkinSelector();
+}
+
+// Event Listeners
+document.getElementById('startButton').addEventListener('click', startGame);
+document.getElementById('skinButton').addEventListener('click', showSkinSelector);
+document.getElementById('selectSkinBtn').addEventListener('click', selectSkin);
+
+// Yön tuşları için event listener
+document.addEventListener('keydown', (event) => {
+    if (!gameStarted) return;
+    
+    switch(event.key) {
+        case 'ArrowUp':
+            if (direction.y !== 1) direction = { x: 0, y: -1 };
+            break;
+        case 'ArrowDown':
+            if (direction.y !== -1) direction = { x: 0, y: 1 };
+            break;
+        case 'ArrowLeft':
+            if (direction.x !== 1) direction = { x: -1, y: 0 };
+            break;
+        case 'ArrowRight':
+            if (direction.x !== -1) direction = { x: 1, y: 0 };
+            break;
     }
 });
 
-// Yapay Zeka Yılanları
-const AI_SNAKES = [
-    { name: 'NeonHunter', color: '#ff0000' },
-    { name: 'CyberSnake', color: '#00ff00' },
-    { name: 'VirtualViper', color: '#0000ff' },
-    { name: 'PixelPython', color: '#ff00ff' }
-];
-
-// Rastgele pozisyon oluştur
-function getRandomPosition() {
-    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
-    const safeArea = {
-        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
-        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
-        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
-        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
-    };
-
-    return {
-        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
-        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
-    };
-}
-
-// Oyun başlatma fonksiyonunu güncelle
-function startGame(nickname) {
-    if (gameState.gameStarted) return;
-    
-    console.log('Oyun başlatılıyor...');
-    
-    // Her seferinde farklı bir renk seç
-    const hue = Math.floor(Math.random() * 360);
-    const randomColor = `hsl(${hue}, 100%, 50%)`;
-    
-    // Rastgele başlangıç pozisyonu
-    const startPos = getRandomPosition();
-    
-    // Grid boyutuna göre pozisyonu ayarla
-    const gridStartPos = {
-        x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
-        y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
-    };
-    
-    // Yılanı başlangıç pozisyonuna yerleştir
-    const snake = [
-        { x: gridStartPos.x, y: gridStartPos.y },
-        { x: gridStartPos.x - 1, y: gridStartPos.y },
-        { x: gridStartPos.x - 2, y: gridStartPos.y }
-    ];
-    
-    // Oyun durumunu sıfırla
-    gameState = {
-        ...gameState,
-        localPlayer: {
-            id: socket.id,
-            name: nickname || 'Anonim',
-            color: randomColor,
-            snake: snake,
-            direction: { x: 1, y: 0 },
-            score: 0,
-            skin: skinsList[currentSkinIndex]
-        },
-        otherPlayers: new Map(),
-        foods: new Set(),
-        direction: { x: 1, y: 0 },
-        nextDirection: { x: 1, y: 0 },
-        score: 0,
-        gameStarted: true
-    };
-    
-    // Oyuna katıl
-    socket.emit('join', {
-        name: nickname,
-        color: randomColor,
-        snake: snake,
-        skin: skinsList[currentSkinIndex]
-    });
-    
-    // Oyun arayüzünü göster
-    document.getElementById('menu').style.display = 'none';
-    document.getElementById('gameCanvas').style.display = 'block';
-    
-    // Oyun döngüsünü başlat
-    gameLoop();
-}
+// ESC tuşu ile görünüm seçiciyi kapatma
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        hideSkinSelector();
+    }
+});
 
 // Yem oluşturma fonksiyonu
 function spawnFood() {

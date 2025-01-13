@@ -21,34 +21,61 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
         }
         
-        .menu input {
-            display: block;
-            margin: 10px auto;
+        .input {
             padding: 10px;
-            width: 200px;
-            border: 2px solid #4CAF50;
-            background: #000;
-            color: #fff;
-            border-radius: 5px;
-        }
-        
-        .menu button {
-            display: block;
-            margin: 10px auto;
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
             border: none;
             border-radius: 5px;
-            cursor: pointer;
-            width: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
         }
         
-        .menu button:hover {
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .button:hover {
             background: #45a049;
+        }
+        
+        .skin-selector {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .skin-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .skin-navigation {
+            display: flex;
+            gap: 10px;
         }
         
         #playerList {
@@ -76,26 +103,22 @@
     <canvas id="minimap"></canvas>
     
     <div id="menu" class="menu">
-        <input type="text" id="nickname" placeholder="Kullanıcı adı" maxlength="15">
-        <button id="startButton">Oyuna Başla</button>
-        <button id="skinButton">Görünüm Seç</button>
+        <input type="text" id="nickname" placeholder="Kullanıcı Adı" class="input">
+        <button id="startButton" class="button">Oyuna Başla</button>
+        <button id="skinButton" class="button">Görünüm Seç</button>
     </div>
     
     <div id="playerList"></div>
     
-    <!-- Görünüm seçim ekranı -->
-    <div id="skinSelector" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: #1a1a1a; padding: 20px; border-radius: 10px; text-align: center;">
-            <h2 style="color: #fff; margin-bottom: 20px;">Yılan Görünümü</h2>
-            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-                <button id="prevSkin" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;">←</button>
-                <div style="position: relative;">
-                    <canvas id="skinPreview" width="200" height="200" style="background: #000; border-radius: 5px;"></canvas>
-                    <div id="skinName" style="color: #fff; margin-top: 10px; font-size: 18px;">Klasik</div>
-                </div>
-                <button id="nextSkin" style="background: none; border: none; color: #fff; font-size: 24px; cursor: pointer;">→</button>
+    <!-- Görünüm Seçici -->
+    <div id="skin-selector" class="skin-selector" style="display: none;">
+        <div class="skin-preview">
+            <canvas id="skinPreviewCanvas"></canvas>
+            <div class="skin-navigation">
+                <button id="prevSkinBtn" class="button">&lt;</button>
+                <button id="nextSkinBtn" class="button">&gt;</button>
             </div>
-            <button id="selectSkin" style="background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Seç</button>
+            <button id="selectSkinBtn" class="button">Seç</button>
         </div>
     </div>
     
