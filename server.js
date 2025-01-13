@@ -10,7 +10,8 @@ const io = require('socket.io')(http, {
     allowEIO3: true,
     transports: ['websocket', 'polling'],
     pingTimeout: 30000,
-    pingInterval: 10000
+    pingInterval: 10000,
+    cookie: false
 });
 
 // CORS ayarları
@@ -53,8 +54,13 @@ for (let i = 0; i < 500; i++) {
     spawnFood();
 }
 
+// Bağlantı yönetimi için Set
+const connectedClients = new Set();
+
 io.on('connection', (socket) => {
     console.log('Yeni oyuncu bağlandı:', socket.id);
+    connectedClients.add(socket.id);
+    console.log('Aktif oyuncu sayısı:', connectedClients.size);
     
     // Oyuncu katılma
     socket.on('playerJoin', (data) => {
@@ -129,6 +135,8 @@ io.on('connection', (socket) => {
     // Oyuncu ayrılma
     socket.on('disconnect', () => {
         console.log('Oyuncu ayrıldı:', socket.id);
+        connectedClients.delete(socket.id);
+        console.log('Aktif oyuncu sayısı:', connectedClients.size);
         gameState.players.delete(socket.id);
         io.emit('playerLeft', socket.id);
         updateLeaderboard();

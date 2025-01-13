@@ -83,7 +83,7 @@ IMAGES.food.src = '/assets/food.png';
 IMAGES.snakeEyes.src = '/assets/snake-eyes.png';
 
 // Socket.IO bağlantısı
-const socket = io({
+const socket = io('https://neonsnake.onrender.com', {
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
@@ -93,8 +93,8 @@ const socket = io({
     transports: ['websocket', 'polling'],
     path: '/socket.io',
     withCredentials: true,
-    forceNew: false,
-    multiplex: true
+    forceNew: true, // Her bağlantı için yeni socket oluştur
+    multiplex: false // Multiplexing'i kapat
 });
 
 // Bağlantı durumu kontrolü
