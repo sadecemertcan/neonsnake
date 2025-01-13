@@ -614,123 +614,80 @@ function gameLoop(currentTime) {
 
 // Oyun Mantığı Güncelleme
 function updateGame() {
-    if (!gameState.localPlayer || !gameState.localPlayer.snake || gameState.localPlayer.snake.length === 0) return;
+    if (!gameState.localPlayer || !gameState.localPlayer.snake) return;
 
+    // Yön güncellemesi
+    gameState.localPlayer.direction = gameState.nextDirection;
+
+    // Yılanın başını al
     const head = { ...gameState.localPlayer.snake[0] };
-    const speed = GAME_CONFIG.SNAKE_SPEED;
-    
-    // Yönü normalize et
-    const length = Math.sqrt(
-        gameState.nextDirection.x * gameState.nextDirection.x +
-        gameState.nextDirection.y * gameState.nextDirection.y
-    );
-    
-    if (length === 0) return;
-    
-    const newX = head.x + (gameState.nextDirection.x / length) * speed;
-    const newY = head.y + (gameState.nextDirection.y / length) * speed;
-    
+
+    // Yeni baş pozisyonunu hesapla
+    const newHead = {
+        x: head.x + gameState.localPlayer.direction.x,
+        y: head.y + gameState.localPlayer.direction.y
+    };
+
     // Dünya sınırlarını kontrol et
-    if (newX <= GAME_CONFIG.WORLD_BOUNDS.MIN_X / GAME_CONFIG.GRID_SIZE || 
-        newX >= GAME_CONFIG.WORLD_BOUNDS.MAX_X / GAME_CONFIG.GRID_SIZE ||
-        newY <= GAME_CONFIG.WORLD_BOUNDS.MIN_Y / GAME_CONFIG.GRID_SIZE ||
-        newY >= GAME_CONFIG.WORLD_BOUNDS.MAX_Y / GAME_CONFIG.GRID_SIZE) {
+    if (newHead.x < GAME_CONFIG.WORLD_BOUNDS.MIN_X / GAME_CONFIG.GRID_SIZE ||
+        newHead.x > GAME_CONFIG.WORLD_BOUNDS.MAX_X / GAME_CONFIG.GRID_SIZE ||
+        newHead.y < GAME_CONFIG.WORLD_BOUNDS.MIN_Y / GAME_CONFIG.GRID_SIZE ||
+        newHead.y > GAME_CONFIG.WORLD_BOUNDS.MAX_Y / GAME_CONFIG.GRID_SIZE) {
         gameOver();
         return;
     }
 
-    const nextHead = { x: newX, y: newY };
-    
-    // Diğer yılanlarla çarpışma kontrolü
-    let collision = false;
-    gameState.otherPlayers.forEach(otherPlayer => {
-        if (otherPlayer.snake && otherPlayer.snake.length > 0) {
-            // Diğer yılanın her parçasıyla çarpışma kontrolü
-            otherPlayer.snake.forEach((segment, index) => {
-                const distance = Math.sqrt(
-                    Math.pow(nextHead.x - segment.x, 2) +
-                    Math.pow(nextHead.y - segment.y, 2)
-                );
-                
-                // Çarpışma mesafesi yılan boyutlarına göre ayarlanır
-                const collisionDistance = (gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE) / 2 +
-                                       (otherPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE) / 2;
-                
-                if (distance < collisionDistance) {
-                    // Eğer diğer yılanın başına çarptıysak, diğer yılan ölür
-                    if (index === 0) {
-                        socket.emit('killPlayer', otherPlayer.id);
-                        // Ölen yılandan yemler düşür
-                        dropFood(otherPlayer.snake);
-                    } else {
-                        // Eğer diğer yılanın gövdesine çarptıysak, biz ölürüz
-                        collision = true;
-                    }
-                }
-            });
-        }
-    });
-    
-    if (collision) {
-        // Öldüğümüzde yemler düşür
-        dropFood(gameState.localPlayer.snake);
-        gameOver();
-        return;
-    }
-    
-    // Yılanı güncelle
-    gameState.localPlayer.snake.unshift(nextHead);
-    
-    // Yem yeme kontrolü
+    // Yeni başı yılanın önüne ekle
+    gameState.localPlayer.snake.unshift(newHead);
+
+    // Yem kontrolü
     let foodEaten = false;
     gameState.foods.forEach(food => {
-        const distance = Math.sqrt(
-            Math.pow(nextHead.x - food.x, 2) +
-            Math.pow(nextHead.y - food.y, 2)
-        );
-        
-        const foodConfig = GAME_CONFIG.FOOD_TYPES[food.type || 'NORMAL'];
-        const foodSize = (food.size || foodConfig.SIZE) * 2;
-        
-        if (distance < foodSize) {
-            foodEaten = true;
-            socket.emit('foodEaten', { x: food.x, y: food.y });
+        if (Math.abs(food.x - newHead.x) < 1 && Math.abs(food.y - newHead.y) < 1) {
+            // Yemi ye
             gameState.foods.delete(food);
+            gameState.score += food.points || 1;
+            foodEaten = true;
             
-            // Yem tipine göre puan ve büyüme
-            const points = food.points || foodConfig.POINTS;
-            const growthAmount = points * GAME_CONFIG.SNAKE_GROWTH_RATE;
+            // Skor güncellemesi
+            document.getElementById('score').textContent = `SKOR: ${gameState.score}`;
             
-            gameState.localPlayer.score += points;
-            gameState.localPlayer.size = (gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE) + growthAmount;
-            
-            // Yılanın uzunluğunu yemin puanının sekizde biri kadar artır
-            for (let i = 0; i < Math.floor(points / 8); i++) {
-                const tail = gameState.localPlayer.snake[gameState.localPlayer.snake.length - 1];
-                gameState.localPlayer.snake.push({ ...tail });
-            }
-            
-            // Kamera hedef zoom değerini yumuşak şekilde güncelle
-            camera.targetScale = Math.max(
-                GAME_CONFIG.MIN_CAMERA_ZOOM,
-                camera.scale - (growthAmount / 8)
-            );
+            // Yeni yem oluştur
+            spawnFood();
         }
     });
 
+    // Eğer yem yemediyse kuyruğu kısalt
     if (!foodEaten) {
         gameState.localPlayer.snake.pop();
     }
-    
-    // Pozisyonu sunucuya gönder
-    socket.emit('updatePosition', {
+
+    // Çarpışma kontrolü
+    for (let i = 1; i < gameState.localPlayer.snake.length; i++) {
+        const segment = gameState.localPlayer.snake[i];
+        if (segment && newHead.x === segment.x && newHead.y === segment.y) {
+            gameOver();
+            return;
+        }
+    }
+
+    // Diğer oyuncularla çarpışma kontrolü
+    gameState.otherPlayers.forEach(player => {
+        if (player.snake) {
+            for (const segment of player.snake) {
+                if (Math.abs(newHead.x - segment.x) < 1 && Math.abs(newHead.y - segment.y) < 1) {
+                    gameOver();
+                    return;
+                }
+            }
+        }
+    });
+
+    // Sunucuya pozisyon güncellemesi gönder
+    socket.emit('playerUpdate', {
         id: socket.id,
-        name: gameState.localPlayer.name,
         snake: gameState.localPlayer.snake,
-        direction: gameState.nextDirection,
-        score: gameState.localPlayer.score,
-        size: gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
-        color: gameState.localPlayer.color
+        score: gameState.score
     });
 }
 
@@ -1105,12 +1062,10 @@ function updateLeaderboard(leaderboard) {
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    offscreenCanvas.width = window.innerWidth;
-    offscreenCanvas.height = window.innerHeight;
-    GAME_CONFIG.GRID_SIZE = Math.min(canvas.width, canvas.height) / GAME_CONFIG.GRID_COUNT;
-
+    
+    // Canvas boyutları değiştiğinde yeniden çiz
     if (gameState.gameStarted) {
-        draw();
+        render(performance.now());
     }
 }
 
@@ -1404,4 +1359,50 @@ function drawFoods(ctx, cameraPos) {
         
         ctx.restore();
     });
+}
+
+// Grid çizimi
+function drawGrid(ctx, cameraPos) {
+    const gridSize = GAME_CONFIG.GRID_SIZE * 10;
+    const startX = Math.floor(cameraPos.x / gridSize) * gridSize - canvas.width / 2;
+    const startY = Math.floor(cameraPos.y / gridSize) * gridSize - canvas.height / 2;
+    const endX = startX + canvas.width + gridSize;
+    const endY = startY + canvas.height + gridSize;
+
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+    ctx.lineWidth = 1;
+
+    // Dikey çizgiler
+    for (let x = startX; x <= endX; x += gridSize) {
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
+    }
+
+    // Yatay çizgiler
+    for (let y = startY; y <= endY; y += gridSize) {
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
+    }
+
+    ctx.stroke();
+}
+
+// Oyun alanını çiz
+function drawWorld(ctx, cameraPos) {
+    // Arkaplanı çiz
+    drawBackground();
+    
+    // Grid çizimi
+    drawGrid(ctx, cameraPos);
+    
+    // Dünya sınırlarını çiz
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+        GAME_CONFIG.WORLD_BOUNDS.MIN_X,
+        GAME_CONFIG.WORLD_BOUNDS.MIN_Y,
+        GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X,
+        GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+    );
 } 
