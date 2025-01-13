@@ -224,49 +224,20 @@ function spawnFood() {
 
 // Yem çizimi
 function drawFood(food) {
-    const foodConfig = GAME_CONFIG.FOOD_TYPES[food.type || 'NORMAL'];
     const time = Date.now() / 1000;
-    
-    // Nabız efekti için boyut hesaplama
-    const pulseEffect = Math.sin(time * foodConfig.PULSE_SPEED) * foodConfig.PULSE_SCALE;
-    const baseSize = (food.size || foodConfig.SIZE) * GAME_CONFIG.GRID_SIZE;
-    const size = baseSize * (1 + pulseEffect);
+    const pulseScale = 1 + Math.sin(time * GAME_CONFIG.FOOD_TYPES.NORMAL.PULSE_SPEED) * 
+                      GAME_CONFIG.FOOD_TYPES.NORMAL.PULSE_SCALE;
     
     ctx.save();
     ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
-    ctx.shadowColor = foodConfig.COLOR;
-    ctx.fillStyle = foodConfig.COLOR;
+    ctx.shadowColor = food.color;
+    ctx.fillStyle = food.color;
     
-    // Ana yem çizimi
     ctx.beginPath();
     ctx.arc(
         food.x * GAME_CONFIG.GRID_SIZE,
         food.y * GAME_CONFIG.GRID_SIZE,
-        size / 2,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
-    
-    // Parlama efekti
-    ctx.globalAlpha = 0.5 + Math.sin(time * foodConfig.PULSE_SPEED * 2) * 0.2;
-    ctx.beginPath();
-    ctx.arc(
-        food.x * GAME_CONFIG.GRID_SIZE,
-        food.y * GAME_CONFIG.GRID_SIZE,
-        size * 0.7,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
-    
-    // İç halka
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(
-        food.x * GAME_CONFIG.GRID_SIZE,
-        food.y * GAME_CONFIG.GRID_SIZE,
-        size * 0.3,
+        food.size * GAME_CONFIG.GRID_SIZE * pulseScale,
         0,
         Math.PI * 2
     );
@@ -474,6 +445,9 @@ function gameLoop(currentTime) {
                 gameState.localPlayer.skin || 'DEFAULT'
             );
         }
+        
+        // Skor tablosunu çiz
+        drawScoreboard(ctx);
         
         lastTime = currentTime;
     }
