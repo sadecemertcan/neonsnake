@@ -991,21 +991,110 @@ function updateLeaderboard(leaderboard) {
     });
 }
 
-// Canvas boyutunu ayarla ve responsive yap
+// Canvas boyutlandırma
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    offscreenCanvas.width = window.innerWidth;
-    offscreenCanvas.height = window.innerHeight;
-    GAME_CONFIG.GRID_SIZE = Math.min(canvas.width, canvas.height) / GAME_CONFIG.GRID_COUNT;
-
+    
+    // Canvas'ı temizle
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Arkaplanı çiz
+    drawBackground();
+    
+    // Dünya sınırlarını çiz
+    drawWorldBorders();
+    
     if (gameState.gameStarted) {
-        draw();
+        // Yemleri çiz
+        gameState.foods.forEach(food => {
+            if (isInViewArea(food)) {
+                drawFood(food);
+            }
+        });
+        
+        // Diğer oyuncuları çiz
+        gameState.otherPlayers.forEach(player => {
+            if (isInViewArea(player.snake[0])) {
+                drawSnake(player.snake, player.color, player.size, player.skin);
+            }
+        });
+        
+        // Yerel oyuncuyu çiz
+        if (gameState.localPlayer) {
+            drawSnake(
+                gameState.localPlayer.snake,
+                gameState.localPlayer.color,
+                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
+                gameState.localPlayer.skin || 'DEFAULT'
+            );
+        }
+        
+        // Skor tablosunu çiz
+        drawScoreboard(ctx);
     }
 }
 
-resizeCanvas();
+// Oyun döngüsünü güncelle
+function gameLoop(currentTime) {
+    if (!gameState.gameStarted) return;
+
+    if (!lastTime) lastTime = currentTime;
+    
+    const deltaTime = currentTime - lastTime;
+    if (deltaTime >= GAME_CONFIG.INITIAL_SPEED) {
+        updateGame();
+        
+        // Canvas'ı temizle
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Kamerayı güncelle
+        camera.followPlayer();
+        
+        // Arkaplanı çiz
+        drawBackground();
+        
+        // Dünya sınırlarını çiz
+        drawWorldBorders();
+        
+        // Yemleri çiz
+        gameState.foods.forEach(food => {
+            if (isInViewArea(food)) {
+                drawFood(food);
+            }
+        });
+        
+        // Diğer oyuncuları çiz
+        gameState.otherPlayers.forEach(player => {
+            if (isInViewArea(player.snake[0])) {
+                drawSnake(player.snake, player.color, player.size, player.skin);
+            }
+        });
+        
+        // Yerel oyuncuyu çiz
+        if (gameState.localPlayer) {
+            drawSnake(
+                gameState.localPlayer.snake,
+                gameState.localPlayer.color,
+                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
+                gameState.localPlayer.skin || 'DEFAULT'
+            );
+        }
+        
+        // Skor tablosunu çiz
+        drawScoreboard(ctx);
+        
+        lastTime = currentTime;
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// Pencere boyutu değiştiğinde canvas'ı yeniden boyutlandır
 window.addEventListener('resize', resizeCanvas);
+
+// İlk yükleme için canvas'ı boyutlandır
+resizeCanvas();
 
 // Kamera pozisyonu
 const camera = {
