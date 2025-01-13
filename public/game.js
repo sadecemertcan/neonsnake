@@ -518,24 +518,21 @@ function getDistance(point1, point2) {
 }
 
 // Yılan çizim fonksiyonu
-function drawSnake(snake, color, size = 1, skinType = 'DEFAULT') {
+function drawSnake(snake, color, size = 1) {
     if (!snake || snake.length === 0) return;
-
-    const skin = GAME_CONFIG.SNAKE_SKINS[skinType];
-    if (!skin) return;
 
     ctx.save();
     
     // Gölge efekti
     ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
-    ctx.shadowColor = skin.glowColor || color;
+    ctx.shadowColor = color;
     
     // Her bir parçayı çiz
     snake.forEach((segment, index) => {
         const segmentSize = GAME_CONFIG.GRID_SIZE * size;
         
         // Gövde parçası
-        ctx.fillStyle = skin.bodyColor || color;
+        ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(
             segment.x * GAME_CONFIG.GRID_SIZE,
@@ -549,7 +546,7 @@ function drawSnake(snake, color, size = 1, skinType = 'DEFAULT') {
         // Baş parçası için gözler
         if (index === 0) {
             const eyeSize = segmentSize * 0.2;
-            ctx.fillStyle = skin.eyeColor;
+            ctx.fillStyle = '#ffffff'; // Gözler her zaman beyaz
             
             // Sol göz
             ctx.beginPath();
@@ -580,49 +577,41 @@ function drawSnake(snake, color, size = 1, skinType = 'DEFAULT') {
 
 // Oyun döngüsünü güncelle
 function gameLoop(currentTime) {
-    if (!gameState.gameStarted) return;
+    if (!gameState.gameStarted || !gameState.localPlayer) return;
 
     if (!lastTime) lastTime = currentTime;
     
     const deltaTime = currentTime - lastTime;
     if (deltaTime >= GAME_CONFIG.INITIAL_SPEED) {
-        updateGame();
-        
         // Canvas'ı temizle
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Kamerayı güncelle
-        camera.followPlayer();
-        
         // Arkaplanı çiz
-        drawBackground();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Dünya sınırlarını çiz
-        drawWorldBorders();
+        // Grid çiz
+        drawGrid(ctx);
         
         // Yemleri çiz
         gameState.foods.forEach(food => {
-            if (isInViewArea(food)) {
-                drawFood(food);
-            }
+            drawFood(food);
         });
         
         // Diğer oyuncuları çiz
         gameState.otherPlayers.forEach(player => {
-            if (isInViewArea(player.snake[0])) {
-                drawSnake(player.snake, player.color, player.size, player.skin);
-            }
+            drawSnake(player.snake, player.color);
         });
         
         // Yerel oyuncuyu çiz
-        if (gameState.localPlayer) {
-            drawSnake(
-                gameState.localPlayer.snake,
-                gameState.localPlayer.color,
-                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
-                gameState.localPlayer.skin || 'DEFAULT'
-            );
-        }
+        drawSnake(
+            gameState.localPlayer.snake,
+            gameState.localPlayer.color,
+            GAME_CONFIG.INITIAL_SNAKE_SIZE
+        );
+        
+        // Skor tablosunu çiz
+        drawScoreboard(ctx);
         
         lastTime = currentTime;
     }
@@ -836,7 +825,12 @@ function draw() {
     
     // Yerel oyuncuyu çiz
     if (gameState.localPlayer) {
-        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE, gameState.localPlayer.skin || 'DEFAULT');
+        drawSnake(
+            gameState.localPlayer.snake,
+            gameState.localPlayer.color,
+            gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
+            gameState.localPlayer.skin || 'DEFAULT'
+        );
     }
     
     offscreenCtx.restore();
