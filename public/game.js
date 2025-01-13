@@ -1,3 +1,46 @@
+// Socket.io bağlantısı
+const socket = io();
+
+// Bağlantı durumunu kontrol et
+socket.on('connect', () => {
+    document.getElementById('connectionStatus').style.display = 'none';
+});
+
+socket.on('disconnect', () => {
+    document.getElementById('connectionStatus').style.display = 'block';
+    document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
+});
+
+socket.on('connect_error', () => {
+    document.getElementById('connectionStatus').style.display = 'block';
+    document.getElementById('connectionStatus').textContent = 'Sunucuya bağlanılamıyor...';
+});
+
+// Oyuncu olaylarını dinle
+socket.on('playerJoined', (player) => {
+    if (player.id !== socket.id) {
+        gameState.otherPlayers.set(player.id, player);
+    }
+});
+
+socket.on('playerLeft', (playerId) => {
+    gameState.otherPlayers.delete(playerId);
+});
+
+socket.on('playerUpdate', (player) => {
+    if (player.id !== socket.id) {
+        gameState.otherPlayers.set(player.id, player);
+    }
+});
+
+socket.on('foodSpawned', (food) => {
+    gameState.foods.add(food);
+});
+
+socket.on('foodEaten', (foodId) => {
+    gameState.foods.delete(foodId);
+});
+
 // Canvas ve context tanımlamaları
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
