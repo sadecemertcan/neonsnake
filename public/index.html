@@ -217,38 +217,112 @@
         #color-selection {
             margin: 20px 0;
             text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: all 0.3s ease;
         }
-        
+
+        #color-selection:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px 0 rgba(31, 38, 135, 0.5);
+        }
+
         #color-selection h3 {
             color: #fff;
-            margin-bottom: 10px;
-            text-shadow: 0 0 5px #0f0;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            font-size: 1.2em;
+            letter-spacing: 2px;
         }
-        
+
         .color-options {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            padding: 10px;
         }
-        
+
         .color-option {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
             cursor: pointer;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
         }
-        
+
+        .color-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+        }
+
         .color-option:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
         }
-        
+
         .color-option.selected {
             border-color: #fff;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            transform: scale(1.15);
+        }
+
+        .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+            font-size: 1.5em;
+            z-index: 2;
+        }
+
+        .color-name {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8em;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .color-option:hover .color-name {
+            opacity: 1;
+            bottom: -20px;
+        }
+
+        @media (max-width: 768px) {
+            #color-selection {
+                padding: 15px;
+            }
+
+            .color-option {
+                width: 40px;
+                height: 40px;
+            }
+
+            .color-name {
+                font-size: 0.7em;
+            }
         }
     </style>
 </head>
@@ -258,13 +332,23 @@
         <input type="text" id="nickname" placeholder="Kullanıcı Adı" maxlength="20">
         
         <div id="color-selection">
-            <h3>Yılan Rengi Seç</h3>
+            <h3>Yılan Rengi</h3>
             <div class="color-options">
-                <div class="color-option" data-color="#ff0000" style="background: linear-gradient(45deg, #ff0000, #ff6666)"></div>
-                <div class="color-option" data-color="#00ff00" style="background: linear-gradient(45deg, #00ff00, #66ff66)"></div>
-                <div class="color-option" data-color="#0000ff" style="background: linear-gradient(45deg, #0000ff, #6666ff)"></div>
-                <div class="color-option" data-color="#ff00ff" style="background: linear-gradient(45deg, #ff00ff, #ff66ff)"></div>
-                <div class="color-option" data-color="#ffff00" style="background: linear-gradient(45deg, #ffff00, #ffff66)"></div>
+                <div class="color-option" data-color="#ff0000" style="background: linear-gradient(45deg, #ff0000, #ff6666)">
+                    <div class="color-name">Kırmızı</div>
+                </div>
+                <div class="color-option" data-color="#00ff00" style="background: linear-gradient(45deg, #00ff00, #66ff66)">
+                    <div class="color-name">Yeşil</div>
+                </div>
+                <div class="color-option" data-color="#0000ff" style="background: linear-gradient(45deg, #0000ff, #6666ff)">
+                    <div class="color-name">Mavi</div>
+                </div>
+                <div class="color-option" data-color="#ff00ff" style="background: linear-gradient(45deg, #ff00ff, #ff66ff)">
+                    <div class="color-name">Mor</div>
+                </div>
+                <div class="color-option" data-color="#ffff00" style="background: linear-gradient(45deg, #ffff00, #ffff66)">
+                    <div class="color-name">Sarı</div>
+                </div>
             </div>
         </div>
         
