@@ -1,6 +1,6 @@
-// Canvas ve Context'i global olarak tanımla
+// Canvas ve Ses Öğeleri
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d');
 
 // Oyun Sabitleri
 const GAME_CONFIG = {
@@ -13,33 +13,33 @@ const GAME_CONFIG = {
     MIN_CAMERA_ZOOM: 1.2,
     CAMERA_SMOOTH_FACTOR: 0.05,
     COLLISION_DISTANCE: 2,
-    FOOD_SPAWN_INTERVAL: 500,
-    FOOD_SPAWN_RADIUS: 2000,
+    FOOD_SPAWN_INTERVAL: 2000,
+    FOOD_SPAWN_RADIUS: 500,
     NEON_GLOW: 15,
-    FOOD_COUNT: 2000,
+    FOOD_COUNT: 100,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
-            SIZE: 1.2,
+            SIZE: 0.8,
             POINTS: 1,
             COLOR: '#ffffff',
             PULSE_SPEED: 2,
-            PULSE_SCALE: 0.3
+            PULSE_SCALE: 0.2
         },
         DEAD_SNAKE: {
-            SIZE: 1.5,
+            SIZE: 1.2,
             MIN_POINTS: 5,
             MAX_POINTS: 20,
             COLOR: '#ffff00',
             PULSE_SPEED: 3,
-            PULSE_SCALE: 0.4
+            PULSE_SCALE: 0.3
         },
         AI: {
-            SIZE: 1.3,
+            SIZE: 1,
             POINTS: 3,
             COLOR: '#00ffff',
             PULSE_SPEED: 4,
-            PULSE_SCALE: 0.35
+            PULSE_SCALE: 0.25
         }
     },
     RENDER_DISTANCE: 50,
@@ -47,10 +47,10 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -5000,
-        MAX_X: 5000,
-        MIN_Y: -5000,
-        MAX_Y: 5000
+        MIN_X: -1000,
+        MAX_X: 1000,
+        MIN_Y: -1000,
+        MAX_Y: 1000
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -94,14 +94,6 @@ const GAME_CONFIG = {
             color: '#44ffff',
             effect: 'ghost_mode'
         }
-    },
-    AI_CONFIG: {
-        COUNT: 10,
-        VIEW_RANGE: 300,
-        CHASE_SPEED_MULTIPLIER: 1.2,
-        ESCAPE_SPEED_MULTIPLIER: 1.3,
-        DECISION_INTERVAL: 500,
-        MIN_CHASE_SIZE: 5 // Minimum boy farkı ile saldırıya geç
     }
 };
 
@@ -208,22 +200,22 @@ const AI_SNAKES = [
     { name: 'NeonHunter', color: '#ff0000' },
     { name: 'CyberSnake', color: '#00ff00' },
     { name: 'VirtualViper', color: '#0000ff' },
-    { name: 'PixelPython', color: '#ff00ff' },
-    { name: 'DataDragon', color: '#ffff00' },
-    { name: 'ByteBiter', color: '#00ffff' },
-    { name: 'AlgoViper', color: '#ff8800' },
-    { name: 'BinaryBoa', color: '#ff0088' },
-    { name: 'QuantumQuetzal', color: '#8800ff' },
-    { name: 'TechTaipan', color: '#00ff88' }
+    { name: 'PixelPython', color: '#ff00ff' }
 ];
 
 // Rastgele pozisyon oluştur
 function getRandomPosition() {
-    // Oyuncunun etrafında geniş bir alanda rastgele pozisyon seç
-    const range = 10000; // Geniş bir aralık
+    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
+    const safeArea = {
+        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
+        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
+        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
+        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
+    };
+
     return {
-        x: (Math.random() - 0.5) * range,
-        y: (Math.random() - 0.5) * range
+        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
+        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
     };
 }
 
@@ -233,9 +225,8 @@ function startGame(nickname) {
     
     console.log('Oyun başlatılıyor...');
     
-    // Seçilen rengi al
-    const selectedColorElement = document.querySelector('.color-option.selected');
-    const snakeColor = selectedColorElement ? selectedColorElement.dataset.color : '#00ff00';
+    // Seçilen rengi kullan
+    const snakeColor = selectedColor || '#00ff00'; // Varsayılan renk yeşil
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -258,7 +249,7 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: snakeColor,
+            color: snakeColor, // Seçilen rengi kullan
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -275,7 +266,7 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: snakeColor,
+        color: snakeColor, // Seçilen rengi gönder
         position: gridStartPos,
         score: 0
     });
@@ -300,29 +291,28 @@ function spawnFood(nearPlayer = false) {
         const playerHead = gameState.localPlayer.snake[0];
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
-        
-        // Pozisyonu sınırlar içinde tut
         pos = {
-            x: Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X,
-                playerHead.x + Math.cos(angle) * distance)),
-            y: Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y,
-                playerHead.y + Math.sin(angle) * distance))
+            x: playerHead.x + Math.cos(angle) * distance,
+            y: playerHead.y + Math.sin(angle) * distance
         };
     } else {
-        // Sınırlar içinde rastgele bir konum seç
+        // Oyun alanı sınırları içinde rastgele pozisyon
         pos = {
-            x: GAME_CONFIG.WORLD_BOUNDS.MIN_X + Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X),
-            y: GAME_CONFIG.WORLD_BOUNDS.MIN_Y + Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y)
+            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
+            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
         };
     }
+
+    // Pozisyonun sınırlar içinde olduğundan emin ol
+    pos.x = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X, pos.x));
+    pos.y = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y, pos.y));
 
     const randomValue = Math.random();
     let foodType = 'NORMAL';
     
-    // Yem tiplerinin olasılıklarını artır
-    if (randomValue > 0.85) { // %15 şans
+    if (randomValue > 0.95) {
         foodType = 'DEAD_SNAKE';
-    } else if (randomValue > 0.65) { // %20 şans
+    } else if (randomValue > 0.85) {
         foodType = 'AI';
     }
     
@@ -343,7 +333,7 @@ function spawnFood(nearPlayer = false) {
     return food;
 }
 
-// Düzenli yem oluşturma sistemini güncelle
+// Düzenli yem oluşturma sistemini ekle
 function startFoodSpawnSystem() {
     // Başlangıç yemlerini oluştur
     for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
@@ -353,32 +343,7 @@ function startFoodSpawnSystem() {
     // Düzenli aralıklarla yem oluştur
     setInterval(() => {
         if (gameState.gameStarted && gameState.localPlayer) {
-            // Her zaman yeni yemler oluştur
-            for (let i = 0; i < 20; i++) { // Her seferinde 20 yeni yem
-                spawnFood(Math.random() > 0.5); // %50 şansla oyuncunun etrafında
-            }
-            
-            // Çok uzaktaki yemleri temizle
-            const playerPos = gameState.localPlayer.snake[0];
-            const maxDistance = GAME_CONFIG.FOOD_SPAWN_RADIUS * 2;
-            
-            gameState.foods.forEach(food => {
-                // Sınırlar dışındaki yemleri temizle
-                if (food.x < GAME_CONFIG.WORLD_BOUNDS.MIN_X || food.x > GAME_CONFIG.WORLD_BOUNDS.MAX_X ||
-                    food.y < GAME_CONFIG.WORLD_BOUNDS.MIN_Y || food.y > GAME_CONFIG.WORLD_BOUNDS.MAX_Y) {
-                    gameState.foods.delete(food);
-                }
-                
-                // Oyuncudan çok uzaktaki yemleri temizle
-                const distance = Math.sqrt(
-                    Math.pow((food.x - playerPos.x), 2) + 
-                    Math.pow((food.y - playerPos.y), 2)
-                );
-                
-                if (distance > maxDistance) {
-                    gameState.foods.delete(food);
-                }
-            });
+            spawnFood(true); // Yılanın etrafında yem oluştur
         }
     }, GAME_CONFIG.FOOD_SPAWN_INTERVAL);
 }
@@ -447,7 +412,7 @@ setInterval(() => {
         if (currentFoodCount < targetFoodCount) {
             const foodsToAdd = targetFoodCount - currentFoodCount;
             for (let i = 0; i < foodsToAdd; i++) {
-                spawnFood(true); // Yılanın etrafında yem oluştur
+                spawnFood();
             }
         }
     }
@@ -455,145 +420,103 @@ setInterval(() => {
 
 // Yapay zeka yılanlarını başlat
 function initAISnakes() {
-    AI_SNAKES.forEach(aiSnake => {
+    AI_SNAKES.forEach(ai => {
         const startPos = getRandomPosition();
-        const gridStartPos = {
-            x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
-            y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
-        };
-
-        const snake = [
-            { x: gridStartPos.x, y: gridStartPos.y },
-            { x: gridStartPos.x - 1, y: gridStartPos.y },
-            { x: gridStartPos.x - 2, y: gridStartPos.y }
-        ];
-
-        const aiPlayer = {
-            id: 'AI_' + Math.random().toString(36).substr(2, 9),
-            name: aiSnake.name,
-            color: aiSnake.color,
-            snake: snake,
+        
+        const aiSnake = {
+            id: ai.name,
+            name: ai.name,
+            color: ai.color,
+            snake: [
+                { x: startPos.x, y: startPos.y },
+                { x: startPos.x - 1, y: startPos.y },
+                { x: startPos.x - 2, y: startPos.y }
+            ],
             direction: { x: 1, y: 0 },
             score: 0,
-            isAI: true,
-            lastDecision: Date.now(),
             target: null
         };
-
-        gameState.otherPlayers.set(aiPlayer.id, aiPlayer);
-        updateAIBehavior(aiPlayer);
+        
+        gameState.otherPlayers.set(ai.name, aiSnake);
     });
 }
 
-// Yapay zeka davranışını güncelle
-function updateAIBehavior(aiPlayer) {
-    if (!gameState.gameStarted) return;
-
-    setInterval(() => {
-        if (!gameState.gameStarted) return;
-
-        const head = aiPlayer.snake[0];
-        let nearestFood = null;
-        let nearestFoodDist = Infinity;
-        let nearestPlayer = null;
-        let nearestPlayerDist = Infinity;
-
-        // En yakın yemi bul
-        gameState.foods.forEach(food => {
-            const dist = getDistance(head, food);
-            if (dist < nearestFoodDist && dist < GAME_CONFIG.AI_CONFIG.VIEW_RANGE) {
-                nearestFood = food;
-                nearestFoodDist = dist;
-            }
-        });
-
-        // En yakın oyuncuyu bul
-        const allPlayers = [gameState.localPlayer, ...Array.from(gameState.otherPlayers.values())];
-        allPlayers.forEach(player => {
-            if (player && player.id !== aiPlayer.id) {
-                const playerHead = player.snake[0];
-                const dist = getDistance(head, playerHead);
-                if (dist < nearestPlayerDist && dist < GAME_CONFIG.AI_CONFIG.VIEW_RANGE) {
-                    nearestPlayer = player;
-                    nearestPlayerDist = dist;
+// Yapay zeka yılanlarını güncelle
+function updateAISnakes() {
+    AI_SNAKES.forEach(ai => {
+        const aiSnake = gameState.otherPlayers.get(ai.name);
+        if (aiSnake) {
+            // Hedef belirle
+            if (!aiSnake.target || Math.random() < 0.02) { // %2 şansla hedef değiştir
+                // Yakındaki yemleri bul
+                const foods = Array.from(gameState.foods);
+                const playerHead = gameState.localPlayer.snake[0];
+                
+                // Hedef olarak ya en yakın yemi ya da oyuncuyu seç
+                if (Math.random() < 0.7) { // %70 şansla yeme git
+                    aiSnake.target = foods.reduce((closest, food) => {
+                        const distToFood = getDistance(aiSnake.snake[0], food);
+                        const distToClosest = closest ? getDistance(aiSnake.snake[0], closest) : Infinity;
+                        return distToFood < distToClosest ? food : closest;
+                    }, null);
+                } else { // %30 şansla oyuncuya saldır
+                    aiSnake.target = playerHead;
                 }
             }
-        });
-
-        // Karar verme
-        let target = null;
-        if (nearestPlayer && aiPlayer.snake.length > nearestPlayer.snake.length + GAME_CONFIG.AI_CONFIG.MIN_CHASE_SIZE) {
-            // Daha küçük yılana saldır
-            target = nearestPlayer.snake[0];
-            aiPlayer.speedMultiplier = GAME_CONFIG.AI_CONFIG.CHASE_SPEED_MULTIPLIER;
-        } else if (nearestPlayer && nearestPlayer.snake.length > aiPlayer.snake.length + GAME_CONFIG.AI_CONFIG.MIN_CHASE_SIZE) {
-            // Daha büyük yılandan kaç
-            target = {
-                x: head.x * 2 - nearestPlayer.snake[0].x,
-                y: head.y * 2 - nearestPlayer.snake[0].y
-            };
-            aiPlayer.speedMultiplier = GAME_CONFIG.AI_CONFIG.ESCAPE_SPEED_MULTIPLIER;
-        } else if (nearestFood) {
-            // Yeme git
-            target = nearestFood;
-            aiPlayer.speedMultiplier = 1;
-        } else {
-            // Rastgele dolaş
-            target = getRandomPosition();
-            aiPlayer.speedMultiplier = 1;
+            
+            if (aiSnake.target) {
+                // Hedefe doğru yönlen
+                const head = aiSnake.snake[0];
+                const angle = Math.atan2(
+                    aiSnake.target.y - head.y,
+                    aiSnake.target.x - head.x
+                );
+                
+                aiSnake.direction = {
+                    x: Math.cos(angle),
+                    y: Math.sin(angle)
+                };
+                
+                // Hareketi uygula
+                const newHead = {
+                    x: head.x + aiSnake.direction.x * GAME_CONFIG.SNAKE_SPEED,
+                    y: head.y + aiSnake.direction.y * GAME_CONFIG.SNAKE_SPEED
+                };
+                
+                // Çarpışma kontrolü
+                let collision = false;
+                
+                // Oyuncu ile çarpışma
+                const distToPlayer = getDistance(newHead, gameState.localPlayer.snake[0]);
+                if (distToPlayer < GAME_CONFIG.COLLISION_DISTANCE) {
+                    collision = true;
+                    gameOver();
+                }
+                
+                if (!collision) {
+                    aiSnake.snake.unshift(newHead);
+                    aiSnake.snake.pop();
+                    
+                    // Yem yeme kontrolü
+                    gameState.foods.forEach(food => {
+                        if (getDistance(newHead, food) < GAME_CONFIG.FOOD_SIZE) {
+                            gameState.foods.delete(food);
+                            aiSnake.snake.push({ ...aiSnake.snake[aiSnake.snake.length - 1] });
+                            aiSnake.score++;
+                        }
+                    });
+                }
+            }
         }
-
-        if (target) {
-            const newDirection = calculateDirection(head, target);
-            aiPlayer.direction = newDirection;
-        }
-
-    }, GAME_CONFIG.AI_CONFIG.DECISION_INTERVAL);
-}
-
-// Yılan öldüğünde yemlerini düşür
-function dropSnakeFood(snake) {
-    const head = snake.snake[0];
-    const foodCount = Math.floor(snake.score / 2); // Yarısı kadar yem düşür
-    
-    for (let i = 0; i < foodCount; i++) {
-        const offset = {
-            x: (Math.random() - 0.5) * 50,
-            y: (Math.random() - 0.5) * 50
-        };
-        
-        const food = {
-            x: Math.floor((head.x + offset.x) / GAME_CONFIG.GRID_SIZE),
-            y: Math.floor((head.y + offset.y) / GAME_CONFIG.GRID_SIZE),
-            type: 'DEAD_SNAKE',
-            points: 2,
-            size: GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.SIZE,
-            color: GAME_CONFIG.FOOD_TYPES.DEAD_SNAKE.COLOR,
-            spawnTime: Date.now()
-        };
-        
-        gameState.foods.add(food);
-        socket.emit('foodSpawned', food);
-    }
+    });
 }
 
 // İki nokta arasındaki mesafeyi hesapla
 function getDistance(point1, point2) {
-    const dx = point2.x - point1.x;
-    const dy = point2.y - point1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-// Hedef noktaya gitmek için yön hesapla
-function calculateDirection(current, target) {
-    const dx = target.x - current.x;
-    const dy = target.y - current.y;
-    
-    if (Math.abs(dx) > Math.abs(dy)) {
-        return { x: dx > 0 ? 1 : -1, y: 0 };
-    } else {
-        return { x: 0, y: dy > 0 ? 1 : -1 };
-    }
+    return Math.sqrt(
+        Math.pow(point1.x - point2.x, 2) +
+        Math.pow(point1.y - point2.y, 2)
+    );
 }
 
 // Yılan çizim fonksiyonu
@@ -1559,7 +1482,7 @@ function drawGrid(ctx) {
 }
 
 function drawWorld(ctx, cameraPos) {
-    // Boş bırak - sınırlar artık çizilmeyecek
+    // Dünyayı çizmek için gerekli kodları buraya ekle
 }
 
 function drawLocalSnake(ctx, cameraPos) {
