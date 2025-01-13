@@ -47,10 +47,10 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -2500,
-        MAX_X: 2500,
-        MIN_Y: -2500,
-        MAX_Y: 2500
+        MIN_X: -Infinity,
+        MAX_X: Infinity,
+        MIN_Y: -Infinity,
+        MAX_Y: Infinity
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -219,17 +219,11 @@ const AI_SNAKES = [
 
 // Rastgele pozisyon oluştur
 function getRandomPosition() {
-    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
-    const safeArea = {
-        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
-        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
-        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
-        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
-    };
-
+    // Oyuncunun etrafında geniş bir alanda rastgele pozisyon seç
+    const range = 10000; // Geniş bir aralık
     return {
-        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
-        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
+        x: (Math.random() - 0.5) * range,
+        y: (Math.random() - 0.5) * range
     };
 }
 
@@ -239,8 +233,9 @@ function startGame(nickname) {
     
     console.log('Oyun başlatılıyor...');
     
-    // Seçilen rengi kullan
-    const snakeColor = selectedColor || '#00ff00'; // Varsayılan renk yeşil
+    // Seçilen rengi al
+    const selectedColorElement = document.querySelector('.color-option.selected');
+    const snakeColor = selectedColorElement ? selectedColorElement.dataset.color : '#00ff00';
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -263,7 +258,7 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: snakeColor, // Seçilen rengi kullan
+            color: snakeColor,
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -280,7 +275,7 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: snakeColor, // Seçilen rengi gönder
+        color: snakeColor,
         position: gridStartPos,
         score: 0
     });
@@ -306,22 +301,18 @@ function spawnFood(nearPlayer = false) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
         
-        // Pozisyonu hesapla
         pos = {
             x: playerHead.x + Math.cos(angle) * distance,
             y: playerHead.y + Math.sin(angle) * distance
         };
     } else {
-        // Oyun alanı içinde rastgele bir konum seç
+        // Tamamen rastgele bir konum seç
+        const range = 10000;
         pos = {
-            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
-            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+            x: (Math.random() - 0.5) * range,
+            y: (Math.random() - 0.5) * range
         };
     }
-
-    // Pozisyonun sınırlar içinde olduğundan emin ol
-    pos.x = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X, pos.x));
-    pos.y = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y, pos.y));
 
     const randomValue = Math.random();
     let foodType = 'NORMAL';
@@ -1540,7 +1531,7 @@ function drawGrid(ctx) {
 }
 
 function drawWorld(ctx, cameraPos) {
-    // Dünyayı çizmek için gerekli kodları buraya ekle
+    // Boş bırak - sınırlar artık çizilmeyecek
 }
 
 function drawLocalSnake(ctx, cameraPos) {
