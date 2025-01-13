@@ -47,10 +47,13 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -1000,
-        MAX_X: 1000,
-        MIN_Y: -1000,
-        MAX_Y: 1000
+        MIN_X: -500,
+        MAX_X: 500,
+        MIN_Y: -500,
+        MAX_Y: 500
+    },
+    SAFE_ZONE: {
+        MARGIN: 5 // Güvenli bölge sınırı
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -205,17 +208,13 @@ const AI_SNAKES = [
 
 // Rastgele pozisyon oluştur
 function getRandomPosition() {
-    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
-    const safeArea = {
-        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
-        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
-        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
-        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
-    };
-
+    // Güvenli bölge sınırları içinde pozisyon oluştur
+    const safeMargin = GAME_CONFIG.SAFE_ZONE.MARGIN;
+    const bounds = GAME_CONFIG.WORLD_BOUNDS;
+    
     return {
-        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
-        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
+        x: Math.random() * (bounds.MAX_X - bounds.MIN_X - 2 * safeMargin) + bounds.MIN_X + safeMargin,
+        y: Math.random() * (bounds.MAX_Y - bounds.MIN_Y - 2 * safeMargin) + bounds.MIN_Y + safeMargin
     };
 }
 
@@ -291,9 +290,20 @@ function spawnFood(nearPlayer = false) {
         const playerHead = gameState.localPlayer.snake[0];
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
-        pos = {
+        
+        // Geçici pozisyon hesapla
+        const tempPos = {
             x: playerHead.x + Math.cos(angle) * distance,
             y: playerHead.y + Math.sin(angle) * distance
+        };
+        
+        // Pozisyonu güvenli bölge içinde tut
+        const safeMargin = GAME_CONFIG.SAFE_ZONE.MARGIN;
+        const bounds = GAME_CONFIG.WORLD_BOUNDS;
+        
+        pos = {
+            x: Math.max(bounds.MIN_X + safeMargin, Math.min(bounds.MAX_X - safeMargin, tempPos.x)),
+            y: Math.max(bounds.MIN_Y + safeMargin, Math.min(bounds.MAX_Y - safeMargin, tempPos.y))
         };
     } else {
         pos = getRandomPosition();
@@ -311,8 +321,8 @@ function spawnFood(nearPlayer = false) {
     const foodConfig = GAME_CONFIG.FOOD_TYPES[foodType];
     
     const food = {
-        x: Math.floor(pos.x / GAME_CONFIG.GRID_SIZE),
-        y: Math.floor(pos.y / GAME_CONFIG.GRID_SIZE),
+        x: Math.floor(pos.x),
+        y: Math.floor(pos.y),
         type: foodType,
         points: foodConfig.POINTS,
         size: foodConfig.SIZE,
