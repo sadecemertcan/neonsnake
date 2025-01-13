@@ -1405,4 +1405,31 @@ function drawWorld(ctx, cameraPos) {
         GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X,
         GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y
     );
+}
+
+// Dünya koordinatlarını ekran koordinatlarına çevir
+function worldToScreen(worldX, worldY, cameraPos) {
+    return {
+        x: (worldX * GAME_CONFIG.GRID_SIZE) - (cameraPos.x * GAME_CONFIG.GRID_SIZE),
+        y: (worldY * GAME_CONFIG.GRID_SIZE) - (cameraPos.y * GAME_CONFIG.GRID_SIZE)
+    };
+}
+
+// Ekran dışında mı kontrol et
+function isOffscreen(x, y) {
+    const margin = 100; // Ekran kenarlarında biraz tolerans
+    return (
+        x < -margin ||
+        x > canvas.width + margin ||
+        y < -margin ||
+        y > canvas.height + margin
+    );
+}
+
+// Ekran koordinatlarını dünya koordinatlarına çevir
+function screenToWorld(screenX, screenY, cameraPos) {
+    return {
+        x: (screenX + (cameraPos.x * GAME_CONFIG.GRID_SIZE)) / GAME_CONFIG.GRID_SIZE,
+        y: (screenY + (cameraPos.y * GAME_CONFIG.GRID_SIZE)) / GAME_CONFIG.GRID_SIZE
+    };
 } 
