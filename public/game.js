@@ -52,49 +52,18 @@ const GAME_CONFIG = {
         MIN_Y: -1000,
         MAX_Y: 1000
     },
-    SNAKE_SKINS: {
-        DEFAULT: {
-            bodyColor: '#00ff00',
-            eyeColor: '#ffffff',
-            glowColor: '#00ff00',
-            pattern: 'solid'
-        },
-        NEON: {
-            bodyColor: '#ff00ff',
-            eyeColor: '#ffffff',
-            glowColor: '#ff00ff',
-            pattern: 'gradient'
-        },
-        RAINBOW: {
-            bodyColor: 'rainbow',
-            eyeColor: '#ffffff',
-            glowColor: '#ffffff',
-            pattern: 'rainbow'
-        },
-        GHOST: {
-            bodyColor: '#4444ff',
-            eyeColor: '#88ffff',
-            glowColor: '#4444ff',
-            pattern: 'ghost'
-        }
-    },
-    POWERUPS: {
-        SHIELD: {
-            duration: 5000,
-            color: '#4444ff',
-            effect: 'invulnerable'
-        },
-        SPEED: {
-            duration: 3000,
-            color: '#ffff00',
-            effect: 'speed_boost'
-        },
-        GHOST: {
-            duration: 4000,
-            color: '#44ffff',
-            effect: 'ghost_mode'
-        }
-    }
+    SNAKE_COLORS: [
+        '#ff0000', // Kırmızı
+        '#00ff00', // Yeşil
+        '#0000ff', // Mavi
+        '#ff00ff', // Mor
+        '#ffff00', // Sarı
+        '#00ffff', // Cyan
+        '#ff8800', // Turuncu
+        '#ff0088', // Pembe
+        '#88ff00', // Lime
+        '#0088ff'  // Açık Mavi
+    ]
 };
 
 // Performans için offscreen canvas
@@ -225,8 +194,9 @@ function startGame(nickname) {
     
     console.log('Oyun başlatılıyor...');
     
-    // Seçilen rengi kullan
-    const snakeColor = selectedColor || '#00ff00'; // Varsayılan renk yeşil
+    // Rastgele bir renk seç
+    const randomColorIndex = Math.floor(Math.random() * GAME_CONFIG.SNAKE_COLORS.length);
+    const snakeColor = GAME_CONFIG.SNAKE_COLORS[randomColorIndex];
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -249,7 +219,7 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: snakeColor, // Seçilen rengi kullan
+            color: snakeColor,
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -266,7 +236,7 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: snakeColor, // Seçilen rengi gönder
+        color: snakeColor,
         position: gridStartPos,
         score: 0
     });
@@ -286,6 +256,8 @@ function startGame(nickname) {
 // Yem oluşturma fonksiyonu
 function spawnFood(nearPlayer = false) {
     let pos;
+    const safeMargin = 50; // Kenarlardan güvenli mesafe
+
     if (nearPlayer && gameState.localPlayer) {
         // Yılanın etrafında rastgele bir konum seç
         const playerHead = gameState.localPlayer.snake[0];
@@ -298,14 +270,14 @@ function spawnFood(nearPlayer = false) {
     } else {
         // Oyun alanı sınırları içinde rastgele pozisyon
         pos = {
-            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
-            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - safeMargin * 2) + GAME_CONFIG.WORLD_BOUNDS.MIN_X + safeMargin,
+            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - safeMargin * 2) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y + safeMargin
         };
     }
 
     // Pozisyonun sınırlar içinde olduğundan emin ol
-    pos.x = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X, pos.x));
-    pos.y = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y, pos.y));
+    pos.x = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X + safeMargin, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X - safeMargin, pos.x));
+    pos.y = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y + safeMargin, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y - safeMargin, pos.y));
 
     const randomValue = Math.random();
     let foodType = 'NORMAL';
@@ -328,9 +300,21 @@ function spawnFood(nearPlayer = false) {
         spawnTime: Date.now()
     };
     
-    gameState.foods.add(food);
-    socket.emit('foodSpawned', food);
-    return food;
+    // Yem pozisyonunun sınırlar içinde olduğunu kontrol et
+    if (isInsideWorldBounds(food.x, food.y)) {
+        gameState.foods.add(food);
+        socket.emit('foodSpawned', food);
+        return food;
+    }
+    return null;
+}
+
+// Pozisyonun dünya sınırları içinde olup olmadığını kontrol et
+function isInsideWorldBounds(x, y) {
+    return x >= GAME_CONFIG.WORLD_BOUNDS.MIN_X &&
+           x <= GAME_CONFIG.WORLD_BOUNDS.MAX_X &&
+           y >= GAME_CONFIG.WORLD_BOUNDS.MIN_Y &&
+           y <= GAME_CONFIG.WORLD_BOUNDS.MAX_Y;
 }
 
 // Düzenli yem oluşturma sistemini ekle
