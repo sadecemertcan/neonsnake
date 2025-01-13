@@ -159,73 +159,35 @@ socket.on('disconnect', () => {
     document.getElementById('connectionStatus').textContent = 'Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...';
 });
 
-// Renk seçimi için değişken
-let selectedColor = null;
+// Yılan renkleri
+const SNAKE_COLORS = [
+    { color: '#ff0000', gradient: '#ff6666' }, // Kırmızı
+    { color: '#00ff00', gradient: '#66ff66' }, // Yeşil
+    { color: '#0000ff', gradient: '#6666ff' }, // Mavi
+    { color: '#ff00ff', gradient: '#ff66ff' }, // Mor
+    { color: '#ffff00', gradient: '#ffff66' }  // Sarı
+];
 
-// Renk seçimi için event listener'ları ekle
-document.querySelectorAll('.color-option').forEach(option => {
-    option.addEventListener('click', () => {
-        // Önceki seçimi kaldır
-        document.querySelector('.color-option.selected')?.classList.remove('selected');
-        // Yeni seçimi işaretle
-        option.classList.add('selected');
-        // Seçilen rengi kaydet
-        selectedColor = option.dataset.color;
-    });
-});
-
-// İlk rengi varsayılan olarak seç
-document.querySelector('.color-option').click();
-
-// Oyun başlatma butonunu dinle
-document.getElementById('play-button').addEventListener('click', () => {
-    const nickname = document.getElementById('nickname').value.trim();
-    if (!nickname) {
-        alert('Lütfen bir kullanıcı adı girin!');
-        return;
-    }
-    if (!selectedColor) {
-        alert('Lütfen bir renk seçin!');
-        return;
-    }
-    document.getElementById('menu-container').style.display = 'none';
-    document.getElementById('game-container').style.display = 'block';
-    document.getElementById('gameCanvas').style.display = 'block';
-    startGame(nickname);
-});
+// Rastgele renk seç
+function getRandomSnakeColor() {
+    const randomIndex = Math.floor(Math.random() * SNAKE_COLORS.length);
+    return SNAKE_COLORS[randomIndex];
+}
 
 // Yapay Zeka Yılanları
 const AI_SNAKES = [
-    { name: 'NeonHunter', color: '#ff0000' },
-    { name: 'CyberSnake', color: '#00ff00' },
-    { name: 'VirtualViper', color: '#0000ff' },
-    { name: 'PixelPython', color: '#ff00ff' }
+    { name: 'NeonHunter' },
+    { name: 'CyberSnake' },
+    { name: 'VirtualViper' },
+    { name: 'PixelPython' }
 ];
-
-// Rastgele pozisyon oluştur
-function getRandomPosition() {
-    // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
-    const safeArea = {
-        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
-        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
-        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
-        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
-    };
-
-    return {
-        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
-        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
-    };
-}
 
 // Oyun başlatma fonksiyonunu güncelle
 function startGame(nickname) {
     if (gameState.gameStarted) return;
     
-    console.log('Oyun başlatılıyor...');
-    
-    // Seçilen rengi kullan
-    const snakeColor = selectedColor;
+    // Rastgele renk seç
+    const snakeColorScheme = getRandomSnakeColor();
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -248,7 +210,8 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: snakeColor,
+            color: snakeColorScheme.color,
+            gradient: snakeColorScheme.gradient,
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -265,7 +228,8 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: snakeColor,
+        color: snakeColorScheme.color,
+        gradient: snakeColorScheme.gradient,
         position: gridStartPos,
         score: 0
     });
@@ -388,16 +352,26 @@ setInterval(() => {
 function initAISnakes() {
     AI_SNAKES.forEach(ai => {
         const startPos = getRandomPosition();
-        
+        const gridStartPos = {
+            x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
+            y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
+        };
+
+        const snake = [
+            { x: gridStartPos.x, y: gridStartPos.y },
+            { x: gridStartPos.x - 1, y: gridStartPos.y },
+            { x: gridStartPos.x - 2, y: gridStartPos.y }
+        ];
+
+        // Her AI yılanı için rastgele renk seç
+        const snakeColorScheme = getRandomSnakeColor();
+
         const aiSnake = {
             id: ai.name,
             name: ai.name,
-            color: ai.color,
-            snake: [
-                { x: startPos.x, y: startPos.y },
-                { x: startPos.x - 1, y: startPos.y },
-                { x: startPos.x - 2, y: startPos.y }
-            ],
+            color: snakeColorScheme.color,
+            gradient: snakeColorScheme.gradient,
+            snake: snake,
             direction: { x: 1, y: 0 },
             score: 0,
             target: null
@@ -486,47 +460,31 @@ function getDistance(point1, point2) {
 }
 
 // Yılan çizim fonksiyonu
-function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = 'DEFAULT') {
+function drawSnake(snake, color, gradient, size = GAME_CONFIG.INITIAL_SNAKE_SIZE) {
     if (!snake || snake.length === 0) return;
-    
-    const skinConfig = GAME_CONFIG.SNAKE_SKINS[skin];
-    const time = Date.now() / 1000;
     
     ctx.save();
     ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
-    ctx.shadowColor = skinConfig.glowColor;
+    ctx.shadowColor = color;
     
     // Yılan gövdesini çiz
     for (let i = 0; i < snake.length; i++) {
         const segment = snake[i];
         const segmentSize = size * GAME_CONFIG.GRID_SIZE;
-        const progress = i / snake.length;
         
-        // Desen seçimi
-        switch(skinConfig.pattern) {
-            case 'gradient':
-                const gradient = ctx.createRadialGradient(
-                    segment.x * GAME_CONFIG.GRID_SIZE, segment.y * GAME_CONFIG.GRID_SIZE, 0,
-                    segment.x * GAME_CONFIG.GRID_SIZE, segment.y * GAME_CONFIG.GRID_SIZE, segmentSize
-                );
-                gradient.addColorStop(0, skinConfig.bodyColor);
-                gradient.addColorStop(1, skinConfig.glowColor);
-                ctx.fillStyle = gradient;
-                break;
-            
-            case 'rainbow':
-                const hue = (time * 50 + progress * 360) % 360;
-                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-                break;
-            
-            case 'ghost':
-                ctx.fillStyle = skinConfig.bodyColor;
-                ctx.globalAlpha = 0.7 + Math.sin(time * 2 + progress * Math.PI) * 0.3;
-                break;
-            
-            default:
-                ctx.fillStyle = skinConfig.bodyColor;
-        }
+        // Gradient oluştur
+        const gradientFill = ctx.createRadialGradient(
+            segment.x * GAME_CONFIG.GRID_SIZE,
+            segment.y * GAME_CONFIG.GRID_SIZE,
+            0,
+            segment.x * GAME_CONFIG.GRID_SIZE,
+            segment.y * GAME_CONFIG.GRID_SIZE,
+            segmentSize / 2
+        );
+        gradientFill.addColorStop(0, color);
+        gradientFill.addColorStop(1, gradient || color);
+        
+        ctx.fillStyle = gradientFill;
         
         // Segment çizimi
         ctx.beginPath();
@@ -545,8 +503,8 @@ function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = '
             const eyeOffset = segmentSize * 0.3;
             
             // Göz parlaması efekti
-            const eyeGlow = Math.sin(time * 3) * 0.3 + 0.7;
-            ctx.fillStyle = skinConfig.eyeColor;
+            const eyeGlow = Math.sin(Date.now() / 300) * 0.3 + 0.7;
+            ctx.fillStyle = '#ffffff';
             ctx.globalAlpha = eyeGlow;
             
             // Sol göz
@@ -608,7 +566,7 @@ function gameLoop(currentTime) {
         // Diğer oyuncuları çiz
         gameState.otherPlayers.forEach(player => {
             if (isInViewArea(player.snake[0])) {
-                drawSnake(player.snake, player.color, player.size, player.skin);
+                drawSnake(player.snake, player.color, player.gradient, player.size);
             }
         });
         
@@ -617,8 +575,8 @@ function gameLoop(currentTime) {
             drawSnake(
                 gameState.localPlayer.snake,
                 gameState.localPlayer.color,
-                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE,
-                gameState.localPlayer.skin || 'DEFAULT'
+                gameState.localPlayer.gradient,
+                gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE
             );
         }
         
@@ -828,13 +786,13 @@ function draw() {
     // Görüş alanındaki yılanları çiz
     for (const [id, player] of gameState.otherPlayers) {
         if (player.snake.length > 0 && isInViewArea(player.snake[0], viewArea)) {
-            drawSnake(player.snake, player.color, player.size, player.skin);
+            drawSnake(player.snake, player.color, player.gradient, player.size);
         }
     }
     
     // Yerel oyuncuyu çiz
     if (gameState.localPlayer) {
-        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE, gameState.localPlayer.skin || 'DEFAULT');
+        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, gameState.localPlayer.gradient, gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE);
     }
     
     offscreenCtx.restore();
