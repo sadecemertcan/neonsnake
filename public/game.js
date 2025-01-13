@@ -188,17 +188,23 @@ const AI_SNAKES = [
 // Rastgele pozisyon oluştur
 function getRandomPosition() {
     // Güvenli bir başlangıç alanı tanımla (merkeze yakın)
+    const SAFE_MARGIN = 200; // Kenarlardan uzak durma mesafesi
+    
     const safeArea = {
-        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X / 2,
-        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X / 2,
-        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y / 2,
-        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y / 2
+        minX: GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN,
+        maxX: GAME_CONFIG.WORLD_BOUNDS.MAX_X - SAFE_MARGIN,
+        minY: GAME_CONFIG.WORLD_BOUNDS.MIN_Y + SAFE_MARGIN,
+        maxY: GAME_CONFIG.WORLD_BOUNDS.MAX_Y - SAFE_MARGIN
     };
 
-    return {
-        x: Math.random() * (safeArea.maxX - safeArea.minX) + safeArea.minX,
-        y: Math.random() * (safeArea.maxY - safeArea.minY) + safeArea.minY
-    };
+    // Merkeze yakın bir pozisyon seç
+    const centerBias = 0.5; // 0-1 arası, 1'e yaklaştıkça merkeze daha yakın
+    const randomValue = () => Math.random() * (1 - centerBias) + centerBias;
+
+    const x = safeArea.minX + (safeArea.maxX - safeArea.minX) * randomValue();
+    const y = safeArea.minY + (safeArea.maxY - safeArea.minY) * randomValue();
+
+    return { x, y };
 }
 
 // Oyun başlatma fonksiyonunu güncelle
@@ -208,16 +214,23 @@ function startGame(nickname) {
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
     
+    // Grid pozisyonuna çevir
     const gridStartPos = {
         x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
         y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
     };
     
+    // Başlangıç yönünü merkeze doğru ayarla
+    const centerDirection = {
+        x: Math.sign(0 - gridStartPos.x) || 1, // 0 ise 1 kullan
+        y: Math.sign(0 - gridStartPos.y)
+    };
+    
     // Yılanı başlangıç pozisyonuna yerleştir
     const snake = [
         { x: gridStartPos.x, y: gridStartPos.y },
-        { x: gridStartPos.x - 1, y: gridStartPos.y },
-        { x: gridStartPos.x - 2, y: gridStartPos.y }
+        { x: gridStartPos.x - centerDirection.x, y: gridStartPos.y },
+        { x: gridStartPos.x - centerDirection.x * 2, y: gridStartPos.y }
     ];
     
     // Oyun durumunu sıfırla
@@ -228,13 +241,13 @@ function startGame(nickname) {
             name: nickname,
             color: DEFAULT_SNAKE_COLOR,
             snake: snake,
-            direction: { x: 1, y: 0 },
+            direction: { x: centerDirection.x, y: 0 },
             score: 0
         },
         otherPlayers: new Map(),
         foods: new Set(),
-        direction: { x: 1, y: 0 },
-        nextDirection: { x: 1, y: 0 },
+        direction: { x: centerDirection.x, y: 0 },
+        nextDirection: { x: centerDirection.x, y: 0 },
         score: 0,
         gameStarted: true
     };
