@@ -13,10 +13,10 @@ const GAME_CONFIG = {
     MIN_CAMERA_ZOOM: 1.2,
     CAMERA_SMOOTH_FACTOR: 0.05,
     COLLISION_DISTANCE: 2,
-    FOOD_SPAWN_INTERVAL: 1000,
-    FOOD_SPAWN_RADIUS: 2000,
+    FOOD_SPAWN_INTERVAL: 500,
+    FOOD_SPAWN_RADIUS: 5000,
     NEON_GLOW: 15,
-    FOOD_COUNT: 200,
+    FOOD_COUNT: 1000,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
@@ -307,7 +307,7 @@ function spawnFood(nearPlayer = false) {
         };
     } else {
         // Tamamen rastgele bir konum seç
-        const range = 20000; // Daha geniş bir alan
+        const range = 50000; // Çok daha geniş bir alan
         pos = {
             x: (Math.random() - 0.5) * range,
             y: (Math.random() - 0.5) * range
@@ -318,9 +318,9 @@ function spawnFood(nearPlayer = false) {
     let foodType = 'NORMAL';
     
     // Yem tiplerinin olasılıklarını artır
-    if (randomValue > 0.90) { // %10 şans
+    if (randomValue > 0.85) { // %15 şans
         foodType = 'DEAD_SNAKE';
-    } else if (randomValue > 0.75) { // %15 şans
+    } else if (randomValue > 0.65) { // %20 şans
         foodType = 'AI';
     }
     
@@ -351,14 +351,25 @@ function startFoodSpawnSystem() {
     // Düzenli aralıklarla yem oluştur
     setInterval(() => {
         if (gameState.gameStarted && gameState.localPlayer) {
-            // Mevcut yem sayısını kontrol et
-            if (gameState.foods.size < GAME_CONFIG.FOOD_COUNT) {
-                // Eksik yem sayısı kadar yeni yem oluştur
-                const missingFoods = GAME_CONFIG.FOOD_COUNT - gameState.foods.size;
-                for (let i = 0; i < missingFoods; i++) {
-                    spawnFood(true); // Yılanın etrafında yem oluştur
-                }
+            // Her zaman yeni yemler oluştur
+            for (let i = 0; i < 10; i++) { // Her seferinde 10 yeni yem
+                spawnFood(Math.random() > 0.5); // %50 şansla oyuncunun etrafında
             }
+            
+            // Çok uzaktaki yemleri temizle
+            const playerPos = gameState.localPlayer.snake[0];
+            const maxDistance = GAME_CONFIG.FOOD_SPAWN_RADIUS * 2;
+            
+            gameState.foods.forEach(food => {
+                const distance = Math.sqrt(
+                    Math.pow((food.x - playerPos.x), 2) + 
+                    Math.pow((food.y - playerPos.y), 2)
+                );
+                
+                if (distance > maxDistance) {
+                    gameState.foods.delete(food);
+                }
+            });
         }
     }, GAME_CONFIG.FOOD_SPAWN_INTERVAL);
 }
@@ -427,7 +438,7 @@ setInterval(() => {
         if (currentFoodCount < targetFoodCount) {
             const foodsToAdd = targetFoodCount - currentFoodCount;
             for (let i = 0; i < foodsToAdd; i++) {
-                spawnFood();
+                spawnFood(true); // Yılanın etrafında yem oluştur
             }
         }
     }
