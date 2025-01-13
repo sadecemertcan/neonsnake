@@ -63,7 +63,21 @@ const GAME_CONFIG = {
         '#ff0088', // Pembe
         '#88ff00', // Lime
         '#0088ff'  // Açık Mavi
-    ]
+    ],
+    SNAKE_SKINS: {
+        DEFAULT: {
+            bodyColor: '#00ff00',
+            eyeColor: '#ffffff',
+            glowColor: '#00ff00',
+            pattern: 'solid'
+        },
+        NEON: {
+            bodyColor: '#ff00ff',
+            eyeColor: '#ffffff',
+            glowColor: '#ff00ff',
+            pattern: 'gradient'
+        }
+    }
 };
 
 // Performans için offscreen canvas
@@ -504,49 +518,24 @@ function getDistance(point1, point2) {
 }
 
 // Yılan çizim fonksiyonu
-function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = 'DEFAULT') {
+function drawSnake(snake, color, size = 1, skinType = 'DEFAULT') {
     if (!snake || snake.length === 0) return;
-    
-    const skinConfig = GAME_CONFIG.SNAKE_SKINS[skin];
-    const time = Date.now() / 1000;
-    
+
+    const skin = GAME_CONFIG.SNAKE_SKINS[skinType];
+    if (!skin) return;
+
     ctx.save();
-    ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
-    ctx.shadowColor = skinConfig.glowColor;
     
-    // Yılan gövdesini çiz
-    for (let i = 0; i < snake.length; i++) {
-        const segment = snake[i];
-        const segmentSize = size * GAME_CONFIG.GRID_SIZE;
-        const progress = i / snake.length;
+    // Gölge efekti
+    ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
+    ctx.shadowColor = skin.glowColor || color;
+    
+    // Her bir parçayı çiz
+    snake.forEach((segment, index) => {
+        const segmentSize = GAME_CONFIG.GRID_SIZE * size;
         
-        // Desen seçimi
-        switch(skinConfig.pattern) {
-            case 'gradient':
-                const gradient = ctx.createRadialGradient(
-                    segment.x * GAME_CONFIG.GRID_SIZE, segment.y * GAME_CONFIG.GRID_SIZE, 0,
-                    segment.x * GAME_CONFIG.GRID_SIZE, segment.y * GAME_CONFIG.GRID_SIZE, segmentSize
-                );
-                gradient.addColorStop(0, skinConfig.bodyColor);
-                gradient.addColorStop(1, skinConfig.glowColor);
-                ctx.fillStyle = gradient;
-                break;
-            
-            case 'rainbow':
-                const hue = (time * 50 + progress * 360) % 360;
-                ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-                break;
-            
-            case 'ghost':
-                ctx.fillStyle = skinConfig.bodyColor;
-                ctx.globalAlpha = 0.7 + Math.sin(time * 2 + progress * Math.PI) * 0.3;
-                break;
-            
-            default:
-                ctx.fillStyle = skinConfig.bodyColor;
-        }
-        
-        // Segment çizimi
+        // Gövde parçası
+        ctx.fillStyle = skin.bodyColor || color;
         ctx.beginPath();
         ctx.arc(
             segment.x * GAME_CONFIG.GRID_SIZE,
@@ -557,22 +546,17 @@ function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = '
         );
         ctx.fill();
         
-        // Baş kısmı için özel efektler
-        if (i === 0) {
+        // Baş parçası için gözler
+        if (index === 0) {
             const eyeSize = segmentSize * 0.2;
-            const eyeOffset = segmentSize * 0.3;
-            
-            // Göz parlaması efekti
-            const eyeGlow = Math.sin(time * 3) * 0.3 + 0.7;
-            ctx.fillStyle = skinConfig.eyeColor;
-            ctx.globalAlpha = eyeGlow;
+            ctx.fillStyle = skin.eyeColor;
             
             // Sol göz
             ctx.beginPath();
             ctx.arc(
-                segment.x * GAME_CONFIG.GRID_SIZE - eyeOffset,
-                segment.y * GAME_CONFIG.GRID_SIZE - eyeOffset,
-                eyeSize,
+                segment.x * GAME_CONFIG.GRID_SIZE - eyeSize,
+                segment.y * GAME_CONFIG.GRID_SIZE - eyeSize,
+                eyeSize / 2,
                 0,
                 Math.PI * 2
             );
@@ -581,15 +565,15 @@ function drawSnake(snake, color, size = GAME_CONFIG.INITIAL_SNAKE_SIZE, skin = '
             // Sağ göz
             ctx.beginPath();
             ctx.arc(
-                segment.x * GAME_CONFIG.GRID_SIZE + eyeOffset,
-                segment.y * GAME_CONFIG.GRID_SIZE - eyeOffset,
-                eyeSize,
+                segment.x * GAME_CONFIG.GRID_SIZE + eyeSize,
+                segment.y * GAME_CONFIG.GRID_SIZE - eyeSize,
+                eyeSize / 2,
                 0,
                 Math.PI * 2
             );
             ctx.fill();
         }
-    }
+    });
     
     ctx.restore();
 }
@@ -936,7 +920,7 @@ function interpolateColors(color1, color2, factor) {
 
 // Mini-map ile ilgili tüm kodları kaldır
 function render(timestamp) {
-    if (!gameState.localPlayer) return;
+    if (!gameState.localPlayer || !ctx) return;
     
     const deltaTime = timestamp - lastTime;
     lastTime = timestamp;
@@ -965,10 +949,12 @@ function render(timestamp) {
     drawFoods(ctx, cameraPos);
     
     // Diğer yılanları çiz
-    drawOtherSnakes(ctx, cameraPos);
+    gameState.otherPlayers.forEach(player => {
+        drawSnake(player.snake, player.color);
+    });
     
     // Yerel oyuncunun yılanını çiz
-    drawLocalSnake(ctx, cameraPos);
+    drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color);
     
     // Skor tablosunu çiz
     drawScoreboard(ctx);
