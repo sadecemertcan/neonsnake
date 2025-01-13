@@ -110,7 +110,8 @@ let gameState = {
     score: 0,
     gameLoop: null,
     gameStarted: false,
-    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+    platform: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
 };
 
 let lastTime = 0; // lastTime değişkenini tanımla
@@ -137,8 +138,8 @@ const socket = io('https://neonsnake.onrender.com', {
     transports: ['websocket', 'polling'],
     path: '/socket.io',
     withCredentials: true,
-    forceNew: true, // Her bağlantı için yeni socket oluştur
-    multiplex: false // Multiplexing'i kapat
+    forceNew: true,
+    multiplex: false
 });
 
 // Bağlantı durumu kontrolü
@@ -229,7 +230,8 @@ function startGame(nickname) {
             color: DEFAULT_SNAKE_COLOR,
             snake: snake,
             direction: { x: 1, y: 0 },
-            score: 0
+            score: 0,
+            platform: gameState.platform
         },
         otherPlayers: new Map(),
         foods: new Set(),
@@ -245,7 +247,8 @@ function startGame(nickname) {
         name: nickname,
         color: DEFAULT_SNAKE_COLOR,
         position: gridStartPos,
-        score: 0
+        score: 0,
+        platform: gameState.platform
     });
 
     // Yapay zeka yılanlarını başlat
@@ -921,14 +924,16 @@ function updatePlayerList() {
     if (gameState.localPlayer) {
         const div = document.createElement('div');
         div.style.color = gameState.localPlayer.color;
-        div.textContent = `${gameState.localPlayer.name} (Sen)`;
+        const platformIcon = gameState.localPlayer.platform === 'mobile' ? '📱' : '💻';
+        div.textContent = `${platformIcon} ${gameState.localPlayer.name} (Sen)`;
         playerList.appendChild(div);
     }
     
     for (const [id, player] of gameState.otherPlayers) {
         const div = document.createElement('div');
         div.style.color = player.color;
-        div.textContent = player.name;
+        const platformIcon = player.platform === 'mobile' ? '📱' : '💻';
+        div.textContent = `${platformIcon} ${player.name}`;
         playerList.appendChild(div);
     }
     
@@ -961,7 +966,8 @@ function gameOver() {
             score: 0,
             gameLoop: null,
             gameStarted: false,
-            isMobile: gameState.isMobile
+            isMobile: gameState.isMobile,
+            platform: gameState.platform
         };
     }, 1000); // 1 saniye gecikme
 }
@@ -974,7 +980,8 @@ socket.on('playerJoined', (player) => {
             name: player.name,
             color: player.color,
             snake: [player.position],
-            score: player.score || 0
+            score: player.score || 0,
+            platform: player.platform
         });
         updatePlayerList();
     }
@@ -1005,6 +1012,12 @@ function changeDirection(newDirection) {
     }
     
     gameState.nextDirection = newDirection;
+    
+    // Sunucuya yön değişikliğini bildir
+    socket.emit('directionChange', {
+        id: socket.id,
+        direction: newDirection
+    });
 }
 
 // Klavye Kontrolleri
