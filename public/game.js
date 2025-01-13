@@ -166,12 +166,14 @@ socket.on('disconnect', () => {
 // Oyun başlatma butonunu dinle
 document.getElementById('play-button').addEventListener('click', () => {
     const nickname = document.getElementById('nickname').value.trim();
-    if (nickname) {
-        document.getElementById('menu-container').style.display = 'none';
-        document.getElementById('game-container').style.display = 'block';
-        document.getElementById('gameCanvas').style.display = 'block';
-        startGame(nickname);
+    if (!nickname) {
+        alert('Lütfen bir kullanıcı adı girin!');
+        return;
     }
+    document.getElementById('menu-container').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    document.getElementById('gameCanvas').style.display = 'block';
+    startGame(nickname);
 });
 
 // Yapay Zeka Yılanları
@@ -201,6 +203,7 @@ function getRandomPosition() {
 // Oyun başlatma fonksiyonunu güncelle
 function startGame(nickname) {
     if (gameState.gameStarted) return;
+    if (!nickname) return; // İsim yoksa oyunu başlatma
     
     console.log('Oyun başlatılıyor...');
     
@@ -223,15 +226,12 @@ function startGame(nickname) {
         { x: gridStartPos.x - 2, y: gridStartPos.y }
     ];
     
-    // Oyuncu ismini kontrol et ve kaydet
-    const playerName = nickname && nickname.trim() ? nickname.trim() : 'Anonim';
-    
     // Oyun durumunu sıfırla
     gameState = {
         ...gameState,
         localPlayer: {
             id: socket.id,
-            name: playerName,
+            name: nickname, // Direkt olarak girilen ismi kullan
             color: randomColor,
             snake: snake,
             direction: { x: 1, y: 0 },
@@ -248,7 +248,7 @@ function startGame(nickname) {
     // Sunucuya oyuncuyu kaydet
     socket.emit('playerJoin', {
         id: socket.id,
-        name: playerName,
+        name: nickname, // Direkt olarak girilen ismi kullan
         color: randomColor,
         position: gridStartPos,
         score: 0
