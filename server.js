@@ -24,16 +24,25 @@ app.use((req, res, next) => {
     next();
 });
 
+// Oyun sabitleri
+const GRID_SIZE = 20;
+const WORLD_BOUNDS = {
+    MIN_X: -1000,
+    MAX_X: 1000,
+    MIN_Y: -1000,
+    MAX_Y: 1000
+};
+
 // Oyun durumu
 const gameState = {
     players: new Map(),
     foods: new Set(),
     powerups: new Set(),
     foodArea: {
-        MIN_X: -200,
-        MAX_X: 200,
-        MIN_Y: -200,
-        MAX_Y: 200
+        MIN_X: WORLD_BOUNDS.MIN_X + 100,
+        MAX_X: WORLD_BOUNDS.MAX_X - 100,
+        MIN_Y: WORLD_BOUNDS.MIN_Y + 100,
+        MAX_Y: WORLD_BOUNDS.MAX_Y - 100
     }
 };
 
@@ -84,35 +93,24 @@ io.on('connection', (socket) => {
     console.log('Aktif oyuncu sayısı:', connectedClients.size);
     
     // Oyuncu katılma
-    socket.on('playerJoin', (data) => {
+    socket.on('join', (data) => {
         const player = {
             id: socket.id,
             name: data.name,
+            snake: data.snake,
             color: data.color,
-            snake: [
-                { x: data.position.x, y: data.position.y },
-                { x: data.position.x - 1, y: data.position.y },
-                { x: data.position.x - 2, y: data.position.y }
-            ],
-            score: 0
+            score: 0,
+            skin: data.skin || 'DEFAULT'
         };
         
         gameState.players.set(socket.id, player);
-        
-        // Yeni oyuncuya mevcut durumu gönder
-        socket.emit('foodSpawned', Array.from(gameState.foods));
+        socket.emit('gameState', {
+            players: Array.from(gameState.players.values()),
+            foods: Array.from(gameState.foods)
+        });
         
         // Diğer oyunculara yeni oyuncuyu bildir
         socket.broadcast.emit('playerJoined', player);
-        
-        // Yeni oyuncuya diğer oyuncuları gönder
-        for (const [id, otherPlayer] of gameState.players) {
-            if (id !== socket.id) {
-                socket.emit('playerJoined', otherPlayer);
-            }
-        }
-        
-        updateLeaderboard();
     });
     
     // Oyuncu hareketi
@@ -120,12 +118,13 @@ io.on('connection', (socket) => {
         const player = gameState.players.get(socket.id);
         if (player) {
             player.snake = data.snake;
-            player.direction = data.direction;
             player.score = data.score;
+            player.skin = data.skin;
             socket.broadcast.emit('playerMoved', {
                 id: socket.id,
-                snake: player.snake,
-                direction: player.direction
+                snake: data.snake,
+                score: data.score,
+                skin: data.skin
             });
             updateLeaderboard();
         }
@@ -133,18 +132,18 @@ io.on('connection', (socket) => {
     
     // Yem yeme
     socket.on('foodEaten', (food) => {
-        for (const f of gameState.foods) {
+        let foodFound = false;
+        gameState.foods.forEach(f => {
             if (f.x === food.x && f.y === food.y) {
                 gameState.foods.delete(f);
-                break;
+                foodFound = true;
+                
+                // Yeni yem oluştur
+                const newFood = createFood();
+                gameState.foods.add(newFood);
+                io.emit('foodSpawned', Array.from(gameState.foods));
             }
-        }
-        
-        // 10 saniye sonra yeni yem oluştur
-        setTimeout(spawnFood, 10000);
-        
-        // Tüm oyunculara güncel yem listesini gönder
-        io.emit('foodSpawned', Array.from(gameState.foods));
+        });
     });
     
     // Yeni yem oluşturma
@@ -164,29 +163,29 @@ io.on('connection', (socket) => {
     });
     
     // Oyuncu öldürme
-    socket.on('killPlayer', (playerId) => {
-        const killedPlayer = gameState.players.get(playerId);
-        if (killedPlayer) {
-            // Ölen oyuncunun yemlerini oluştur
-            const snakeLength = killedPlayer.snake.length;
-            const foodCount = Math.min(snakeLength, 10);
-            
+    socket.on('killPlayer', (targetId) => {
+        const target = gameState.players.get(targetId);
+        if (target) {
+            // Ölen yılanın boyutuna göre yem düşür
+            const foodCount = Math.ceil(target.score / 10); // Her 10 puan için 1 yem
             for (let i = 0; i < foodCount; i++) {
-                const food = {
-                    x: killedPlayer.snake[i].x,
-                    y: killedPlayer.snake[i].y,
-                    type: 'DEAD_SNAKE',
-                    points: Math.floor(snakeLength / foodCount),
-                    size: 1.2
-                };
-                gameState.foods.add(food);
+                const segment = target.snake[Math.floor(Math.random() * target.snake.length)];
+                if (segment) {
+                    const food = {
+                        x: segment.x,
+                        y: segment.y,
+                        type: 'DEAD_SNAKE',
+                        points: Math.min(50, Math.max(10, Math.floor(target.score / foodCount))),
+                        size: 1.2
+                    };
+                    gameState.foods.add(food);
+                    io.emit('foodSpawned', food);
+                }
             }
             
-            // Ölen oyuncuyu oyundan çıkar
-            gameState.players.delete(playerId);
-            io.emit('playerLeft', playerId);
-            io.emit('foodSpawned', Array.from(gameState.foods));
-            updateLeaderboard();
+            // Oyuncuyu oyundan çıkar
+            gameState.players.delete(targetId);
+            io.emit('playerLeft', targetId);
         }
     });
     
@@ -209,6 +208,62 @@ function updateLeaderboard() {
         .sort((a, b) => b.score - a.score)
         .slice(0, 10);
     io.emit('leaderboardUpdate', leaderboard);
+}
+
+// Yeni yem oluşturma fonksiyonu
+function createFood() {
+    const SAFE_MARGIN = 100; // Kenarlardan güvenli mesafe
+    const foodTypes = ['NORMAL', 'AI', 'DEAD_SNAKE'];
+    const weights = [0.85, 0.1, 0.05]; // Yem tiplerinin oluşma olasılıkları
+    
+    // Rastgele yem tipi seç
+    let randomValue = Math.random();
+    let selectedType = foodTypes[0];
+    let cumulativeWeight = 0;
+    
+    for (let i = 0; i < foodTypes.length; i++) {
+        cumulativeWeight += weights[i];
+        if (randomValue <= cumulativeWeight) {
+            selectedType = foodTypes[i];
+            break;
+        }
+    }
+    
+    // Yem özelliklerini belirle
+    let points = 1;
+    let size = 0.8;
+    
+    switch (selectedType) {
+        case 'AI':
+            points = 3;
+            size = 1;
+            break;
+        case 'DEAD_SNAKE':
+            points = Math.floor(Math.random() * 16) + 5; // 5-20 arası
+            size = 1.2;
+            break;
+    }
+    
+    // Yem pozisyonunu belirle
+    const x = Math.floor((Math.random() * (gameState.foodArea.MAX_X - gameState.foodArea.MIN_X - 2 * SAFE_MARGIN) + 
+                         gameState.foodArea.MIN_X + SAFE_MARGIN) / GRID_SIZE);
+    const y = Math.floor((Math.random() * (gameState.foodArea.MAX_Y - gameState.foodArea.MIN_Y - 2 * SAFE_MARGIN) + 
+                         gameState.foodArea.MIN_Y + SAFE_MARGIN) / GRID_SIZE);
+    
+    return {
+        x,
+        y,
+        type: selectedType,
+        points,
+        size
+    };
+}
+
+// Başlangıç yemlerini oluştur
+const INITIAL_FOOD_COUNT = 25;
+for (let i = 0; i < INITIAL_FOOD_COUNT; i++) {
+    const food = createFood();
+    gameState.foods.add(food);
 }
 
 // Sunucuyu başlat
