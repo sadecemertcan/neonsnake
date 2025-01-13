@@ -16,7 +16,7 @@ const GAME_CONFIG = {
     FOOD_SPAWN_INTERVAL: 2000,
     FOOD_SPAWN_RADIUS: 500,
     NEON_GLOW: 15,
-    FOOD_COUNT: 100,
+    FOOD_COUNT: 30,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
@@ -47,10 +47,10 @@ const GAME_CONFIG = {
     INITIAL_SNAKE_SIZE: 1,
     SNAKE_GROWTH_RATE: 0.005,
     WORLD_BOUNDS: {
-        MIN_X: -1000,
-        MAX_X: 1000,
-        MIN_Y: -1000,
-        MAX_Y: 1000
+        MIN_X: -500,
+        MAX_X: 500,
+        MIN_Y: -500,
+        MAX_Y: 500
     },
     SNAKE_SKINS: {
         DEFAULT: {
@@ -226,7 +226,7 @@ function startGame(nickname) {
     console.log('Oyun başlatılıyor...');
     
     // Seçilen rengi kullan
-    const snakeColor = selectedColor;
+    const snakeColor = selectedColor || '#00ff00'; // Varsayılan renk yeşil
     
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
@@ -249,7 +249,7 @@ function startGame(nickname) {
         localPlayer: {
             id: socket.id,
             name: nickname,
-            color: snakeColor,
+            color: snakeColor, // Seçilen rengi kullan
             snake: snake,
             direction: { x: 1, y: 0 },
             score: 0
@@ -266,7 +266,7 @@ function startGame(nickname) {
     socket.emit('playerJoin', {
         id: socket.id,
         name: nickname,
-        color: snakeColor,
+        color: snakeColor, // Seçilen rengi gönder
         position: gridStartPos,
         score: 0
     });
@@ -291,13 +291,23 @@ function spawnFood(nearPlayer = false) {
         const playerHead = gameState.localPlayer.snake[0];
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
+        
+        // Pozisyonu hesapla
         pos = {
             x: playerHead.x + Math.cos(angle) * distance,
             y: playerHead.y + Math.sin(angle) * distance
         };
     } else {
-        pos = getRandomPosition();
+        // Oyun alanı içinde rastgele bir konum seç
+        pos = {
+            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) + GAME_CONFIG.WORLD_BOUNDS.MIN_X,
+            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) + GAME_CONFIG.WORLD_BOUNDS.MIN_Y
+        };
     }
+
+    // Pozisyonun sınırlar içinde olduğundan emin ol
+    pos.x = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_X, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_X, pos.x));
+    pos.y = Math.max(GAME_CONFIG.WORLD_BOUNDS.MIN_Y, Math.min(GAME_CONFIG.WORLD_BOUNDS.MAX_Y, pos.y));
 
     const randomValue = Math.random();
     let foodType = 'NORMAL';
