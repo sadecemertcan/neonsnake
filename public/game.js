@@ -202,22 +202,18 @@ function getRandomPosition() {
 function startGame(nickname) {
     if (gameState.gameStarted) return;
     
-    // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
-    
     const gridStartPos = {
         x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
         y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
     };
     
-    // Yılanı başlangıç pozisyonuna yerleştir
     const snake = [
         { x: gridStartPos.x, y: gridStartPos.y },
         { x: gridStartPos.x - 1, y: gridStartPos.y },
         { x: gridStartPos.x - 2, y: gridStartPos.y }
     ];
     
-    // Oyun durumunu sıfırla
     gameState = {
         ...gameState,
         localPlayer: {
@@ -247,14 +243,6 @@ function startGame(nickname) {
         platform: gameState.platform
     });
 
-    // Yapay zeka yılanlarını başlat
-    initAISnakes();
-
-    // Başlangıç yemlerini oluştur
-    for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
-        spawnFood();
-    }
-    
     // Oyun döngüsünü başlat
     if (!gameState.gameLoop) {
         gameState.gameLoop = requestAnimationFrame(gameLoop);
@@ -981,7 +969,7 @@ socket.on('playerUpdate', (data) => {
 // Yeni oyuncu katıldığında
 socket.on('playerJoined', (player) => {
     if (player.id !== socket.id) {
-        console.log('Yeni oyuncu katıldı:', player.name);
+        console.log('Yeni oyuncu katıldı:', player.name, 'Platform:', player.platform);
         gameState.otherPlayers.set(player.id, {
             id: player.id,
             name: player.name,
