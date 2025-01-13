@@ -211,7 +211,6 @@ function startGame(nickname) {
     // Rastgele başlangıç pozisyonu
     const startPos = getRandomPosition();
     
-    // Grid boyutuna göre pozisyonu ayarla
     const gridStartPos = {
         x: Math.floor(startPos.x / GAME_CONFIG.GRID_SIZE),
         y: Math.floor(startPos.y / GAME_CONFIG.GRID_SIZE)
@@ -224,12 +223,15 @@ function startGame(nickname) {
         { x: gridStartPos.x - 2, y: gridStartPos.y }
     ];
     
+    // Oyuncu ismini kontrol et ve kaydet
+    const playerName = nickname && nickname.trim() ? nickname.trim() : 'Anonim';
+    
     // Oyun durumunu sıfırla
     gameState = {
         ...gameState,
         localPlayer: {
             id: socket.id,
-            name: nickname || 'Anonim',
+            name: playerName,
             color: randomColor,
             snake: snake,
             direction: { x: 1, y: 0 },
@@ -246,7 +248,7 @@ function startGame(nickname) {
     // Sunucuya oyuncuyu kaydet
     socket.emit('playerJoin', {
         id: socket.id,
-        name: nickname || 'Anonim',
+        name: playerName,
         color: randomColor,
         position: gridStartPos,
         score: 0
@@ -261,9 +263,9 @@ function startGame(nickname) {
     }
     
     // Oyun döngüsünü başlat
-    requestAnimationFrame(gameLoop);
-    
-    console.log('Oyun başlatıldı');
+    if (!gameState.gameLoop) {
+        gameState.gameLoop = requestAnimationFrame(gameLoop);
+    }
 }
 
 // Yem oluşturma fonksiyonu
@@ -993,8 +995,16 @@ function gameOver() {
 
 // Socket.IO Event Handlers
 socket.on('playerJoined', (player) => {
-    gameState.otherPlayers.set(player.id, player);
-    updatePlayerList();
+    if (player.id !== socket.id) {
+        gameState.otherPlayers.set(player.id, {
+            id: player.id,
+            name: player.name,
+            color: player.color,
+            snake: [player.position],
+            score: player.score || 0
+        });
+        updatePlayerList();
+    }
 });
 
 socket.on('playerLeft', (playerId) => {
@@ -1002,11 +1012,12 @@ socket.on('playerLeft', (playerId) => {
     updatePlayerList();
 });
 
-socket.on('playerMoved', (data) => {
+socket.on('playerUpdate', (data) => {
     const player = gameState.otherPlayers.get(data.id);
     if (player) {
         player.snake = data.snake;
-        player.direction = data.direction;
+        player.score = data.score;
+        player.name = data.name; // İsim güncellemesini ekle
     }
 });
 
