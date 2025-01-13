@@ -13,9 +13,10 @@ const GAME_CONFIG = {
     MIN_CAMERA_ZOOM: 1.2,
     CAMERA_SMOOTH_FACTOR: 0.05,
     COLLISION_DISTANCE: 2,
-    FOOD_SPAWN_INTERVAL: 3000,
+    FOOD_SPAWN_INTERVAL: 2000,
+    FOOD_SPAWN_RADIUS: 500,
     NEON_GLOW: 15,
-    FOOD_COUNT: 50,
+    FOOD_COUNT: 100,
     FOOD_RESPAWN_TIME: 5000,
     FOOD_TYPES: {
         NORMAL: {
@@ -273,10 +274,8 @@ function startGame(nickname) {
     // Yapay zeka yılanlarını başlat
     initAISnakes();
 
-    // Başlangıç yemlerini oluştur
-    for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
-        spawnFood();
-    }
+    // Yem sistemini başlat
+    startFoodSpawnSystem();
     
     // Oyun döngüsünü başlat
     if (!gameState.gameLoop) {
@@ -285,12 +284,24 @@ function startGame(nickname) {
 }
 
 // Yem oluşturma fonksiyonu
-function spawnFood() {
-    const pos = getRandomPosition();
+function spawnFood(nearPlayer = false) {
+    let pos;
+    if (nearPlayer && gameState.localPlayer) {
+        // Yılanın etrafında rastgele bir konum seç
+        const playerHead = gameState.localPlayer.snake[0];
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * GAME_CONFIG.FOOD_SPAWN_RADIUS;
+        pos = {
+            x: playerHead.x + Math.cos(angle) * distance,
+            y: playerHead.y + Math.sin(angle) * distance
+        };
+    } else {
+        pos = getRandomPosition();
+    }
+
     const randomValue = Math.random();
     let foodType = 'NORMAL';
     
-    // %85 normal yem, %10 AI yem, %5 büyük yem
     if (randomValue > 0.95) {
         foodType = 'DEAD_SNAKE';
     } else if (randomValue > 0.85) {
@@ -312,6 +323,21 @@ function spawnFood() {
     gameState.foods.add(food);
     socket.emit('foodSpawned', food);
     return food;
+}
+
+// Düzenli yem oluşturma sistemini ekle
+function startFoodSpawnSystem() {
+    // Başlangıç yemlerini oluştur
+    for (let i = 0; i < GAME_CONFIG.FOOD_COUNT; i++) {
+        spawnFood();
+    }
+
+    // Düzenli aralıklarla yem oluştur
+    setInterval(() => {
+        if (gameState.gameStarted && gameState.localPlayer) {
+            spawnFood(true); // Yılanın etrafında yem oluştur
+        }
+    }, GAME_CONFIG.FOOD_SPAWN_INTERVAL);
 }
 
 // Yem çizimi
@@ -931,6 +957,9 @@ function render(timestamp) {
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Grid çiz
+    drawGrid(ctx);
+    
     // Kamera pozisyonunu güncelle
     const cameraPos = {
         x: gameState.localPlayer.snake[0].x,
@@ -1389,6 +1418,83 @@ function drawScoreboard(ctx) {
     });
 
     ctx.restore();
+}
+
+function drawFoods(ctx, cameraPos) {
+    gameState.foods.forEach(food => {
+        const screenPos = worldToScreen(food.x, food.y, cameraPos);
+        
+        // Ekran dışındaysa çizme
+        if (isOffscreen(screenPos.x, screenPos.y)) return;
+        
+        // Yem çizimi
+        ctx.save();
+        ctx.translate(screenPos.x, screenPos.y);
+        
+        // Yem parıltısı
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, GAME_CONFIG.FOOD_SIZE * 2);
+        gradient.addColorStop(0, food.color);
+        gradient.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, GAME_CONFIG.FOOD_SIZE * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Yem merkezi
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, GAME_CONFIG.FOOD_SIZE, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    });
+}
+
+function drawGrid(ctx) {
+    const gridSize = 50;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+
+    // Yatay çizgiler
+    for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    // Dikey çizgiler
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+}
+
+function drawWorld(ctx, cameraPos) {
+    // Dünyayı çizmek için gerekli kodları buraya ekle
+}
+
+function drawLocalSnake(ctx, cameraPos) {
+    // Yerel oyuncunun yılanını çizmek için gerekli kodları buraya ekle
+}
+
+function drawOtherSnakes(ctx, cameraPos) {
+    // Diğer yılanları çizmek için gerekli kodları buraya ekle
+}
+
+function drawWorld(ctx, cameraPos) {
+    // Dünyayı çizmek için gerekli kodları buraya ekle
+}
+
+function drawLocalSnake(ctx, cameraPos) {
+    // Yerel oyuncunun yılanını çizmek için gerekli kodları buraya ekle
+}
+
+function drawOtherSnakes(ctx, cameraPos) {
+    // Diğer yılanları çizmek için gerekli kodları buraya ekle
 }
 
 function drawFoods(ctx, cameraPos) {
