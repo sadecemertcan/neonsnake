@@ -566,6 +566,43 @@ function updateGame() {
 
     const nextHead = { x: newX, y: newY };
     
+    // Diğer yılanlarla çarpışma kontrolü
+    let collision = false;
+    gameState.otherPlayers.forEach(otherPlayer => {
+        if (otherPlayer.snake && otherPlayer.snake.length > 0) {
+            // Diğer yılanın her parçasıyla çarpışma kontrolü
+            otherPlayer.snake.forEach((segment, index) => {
+                const distance = Math.sqrt(
+                    Math.pow(nextHead.x - segment.x, 2) +
+                    Math.pow(nextHead.y - segment.y, 2)
+                );
+                
+                // Çarpışma mesafesi yılan boyutlarına göre ayarlanır
+                const collisionDistance = (gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE) / 2 +
+                                       (otherPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE) / 2;
+                
+                if (distance < collisionDistance) {
+                    // Eğer diğer yılanın başına çarptıysak, diğer yılan ölür
+                    if (index === 0) {
+                        socket.emit('killPlayer', otherPlayer.id);
+                        // Ölen yılandan yemler düşür
+                        dropFood(otherPlayer.snake);
+                    } else {
+                        // Eğer diğer yılanın gövdesine çarptıysak, biz ölürüz
+                        collision = true;
+                    }
+                }
+            });
+        }
+    });
+    
+    if (collision) {
+        // Öldüğümüzde yemler düşür
+        dropFood(gameState.localPlayer.snake);
+        gameOver();
+        return;
+    }
+    
     // Yılanı güncelle
     gameState.localPlayer.snake.unshift(nextHead);
     
@@ -585,7 +622,7 @@ function updateGame() {
             socket.emit('foodEaten', { x: food.x, y: food.y });
             gameState.foods.delete(food);
             
-            // Yem tipine göre puan ve büyüme (çeyrek oranında)
+            // Yem tipine göre puan ve büyüme
             const points = food.points || foodConfig.POINTS;
             const growthAmount = points * GAME_CONFIG.SNAKE_GROWTH_RATE;
             
@@ -1141,4 +1178,14 @@ function drawWorldBorders() {
     ctx.stroke();
     
     ctx.restore();
-} 
+}
+
+// Socket.IO Event Handlers ekle
+socket.on('killPlayer', (playerId) => {
+    const player = gameState.otherPlayers.get(playerId);
+    if (player) {
+        dropFood(player.snake);
+        gameState.otherPlayers.delete(playerId);
+        updatePlayerList();
+    }
+}); 

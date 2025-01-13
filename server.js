@@ -133,6 +133,33 @@ io.on('connection', (socket) => {
         io.emit('playerLeft', socket.id);
         updateLeaderboard();
     });
+    
+    // Oyuncu öldürme
+    socket.on('killPlayer', (playerId) => {
+        const killedPlayer = gameState.players.get(playerId);
+        if (killedPlayer) {
+            // Ölen oyuncunun yemlerini oluştur
+            const snakeLength = killedPlayer.snake.length;
+            const foodCount = Math.min(snakeLength, 10);
+            
+            for (let i = 0; i < foodCount; i++) {
+                const food = {
+                    x: killedPlayer.snake[i].x,
+                    y: killedPlayer.snake[i].y,
+                    type: 'DEAD_SNAKE',
+                    points: Math.floor(snakeLength / foodCount),
+                    size: 1.2
+                };
+                gameState.foods.add(food);
+            }
+            
+            // Ölen oyuncuyu oyundan çıkar
+            gameState.players.delete(playerId);
+            io.emit('playerLeft', playerId);
+            io.emit('foodSpawned', Array.from(gameState.foods));
+            updateLeaderboard();
+        }
+    });
 });
 
 // Skor tablosunu güncelle
