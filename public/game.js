@@ -342,7 +342,14 @@ function startFoodSpawnSystem() {
 
 // Yem çizimi
 function drawFood(food, cameraPos) {
-    const screenPos = worldToScreen(food.x, food.y, cameraPos);
+    if (!food || !cameraPos) return;
+    
+    // Dünya koordinatlarını ekran koordinatlarına çevir
+    const screenPos = worldToScreen(
+        Number(food.x) || 0,
+        Number(food.y) || 0,
+        cameraPos
+    );
     
     // Ekran dışındaysa çizme
     if (isOffscreen(screenPos.x, screenPos.y)) return;
@@ -350,28 +357,44 @@ function drawFood(food, cameraPos) {
     const foodConfig = GAME_CONFIG.FOOD_TYPES[food.type || 'NORMAL'];
     const time = Date.now() / 1000;
     
-    // Nabız efekti için boyut hesaplama (optimize edildi)
+    // Nabız efekti için boyut hesaplama
     const pulseEffect = Math.sin(time * foodConfig.PULSE_SPEED) * foodConfig.PULSE_SCALE;
-    const baseSize = (food.size || foodConfig.SIZE) * GAME_CONFIG.GRID_SIZE;
+    const baseSize = (Number(food.size) || foodConfig.SIZE) * GAME_CONFIG.GRID_SIZE;
     const size = baseSize * (1 + pulseEffect);
     
-    ctx.save();
+    // Koordinatları sayısal değerlere dönüştür
+    const x = Math.floor(screenPos.x);
+    const y = Math.floor(screenPos.y);
     
-    // Parıltı efekti için tek gradient kullan
-    const gradient = ctx.createRadialGradient(
-        screenPos.x, screenPos.y, 0,
-        screenPos.x, screenPos.y, size * 2
-    );
-    gradient.addColorStop(0, foodConfig.COLOR);
-    gradient.addColorStop(0.5, `${foodConfig.COLOR}88`);
-    gradient.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(screenPos.x, screenPos.y, size * 2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.restore();
+    try {
+        ctx.save();
+        
+        // Parıltı efekti için gradient
+        const gradient = ctx.createRadialGradient(
+            x, y, 0,
+            x, y, size * 2
+        );
+        
+        gradient.addColorStop(0, foodConfig.COLOR);
+        gradient.addColorStop(0.5, `${foodConfig.COLOR}88`);
+        gradient.addColorStop(1, 'transparent');
+        
+        // Yem çizimi
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Yem merkezi
+        ctx.fillStyle = foodConfig.COLOR;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+    } catch (error) {
+        console.error('Yem çizimi hatası:', error);
+    }
 }
 
 // Yem yönetimi
@@ -1494,21 +1517,30 @@ function drawFoods(ctx, cameraPos) {
 
 // Ekran dışı kontrol fonksiyonu
 function isOffscreen(x, y) {
-    const margin = 100; // Ekran kenarlarında extra margin
+    if (typeof x !== 'number' || typeof y !== 'number') return true;
+    
+    const margin = 100;
     return (
         x < -margin ||
-        x > canvas.width + margin ||
+        x > (canvas.width + margin) ||
         y < -margin ||
-        y > canvas.height + margin
+        y > (canvas.height + margin)
     );
 }
 
 // Dünya koordinatlarını ekran koordinatlarına çevir
 function worldToScreen(x, y, cameraPos) {
-    if (!cameraPos) return { x: 0, y: 0 };
+    if (!cameraPos || typeof x !== 'number' || typeof y !== 'number') {
+        return { x: 0, y: 0 };
+    }
     
-    return {
-        x: (x - cameraPos.x) * GAME_CONFIG.CAMERA_ZOOM + canvas.width / 2,
-        y: (y - cameraPos.y) * GAME_CONFIG.CAMERA_ZOOM + canvas.height / 2
-    };
+    try {
+        return {
+            x: Math.floor((x - cameraPos.x) * GAME_CONFIG.CAMERA_ZOOM + canvas.width / 2),
+            y: Math.floor((y - cameraPos.y) * GAME_CONFIG.CAMERA_ZOOM + canvas.height / 2)
+        };
+    } catch (error) {
+        console.error('Koordinat dönüşüm hatası:', error);
+        return { x: 0, y: 0 };
+    }
 } 
