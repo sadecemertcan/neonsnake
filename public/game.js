@@ -262,37 +262,52 @@ function startGame(nickname) {
 
 // Yem oluşturma fonksiyonu
 function spawnFood() {
-    const SAFE_MARGIN = 50; // Sınırlardan güvenli mesafe
+    const SAFE_MARGIN = 50;
+    const MAX_ATTEMPTS = 50; // Maksimum deneme sayısı
+    let attempts = 0;
     
-    // Dünya sınırları içinde tamamen rastgele bir pozisyon seç
-    const pos = {
-        x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - 2 * SAFE_MARGIN) + 
-           GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN,
-        y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - 2 * SAFE_MARGIN) + 
-           GAME_CONFIG.WORLD_BOUNDS.MIN_Y + SAFE_MARGIN
-    };
+    while (attempts < MAX_ATTEMPTS) {
+        attempts++;
+        
+        // Dünya sınırları içinde rastgele bir pozisyon seç
+        const pos = {
+            x: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X - 2 * SAFE_MARGIN) + 
+               GAME_CONFIG.WORLD_BOUNDS.MIN_X + SAFE_MARGIN,
+            y: Math.random() * (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y - 2 * SAFE_MARGIN) + 
+               GAME_CONFIG.WORLD_BOUNDS.MIN_Y + SAFE_MARGIN
+        };
 
-    const food = {
-        x: Math.floor(pos.x / GAME_CONFIG.GRID_SIZE),
-        y: Math.floor(pos.y / GAME_CONFIG.GRID_SIZE),
-        type: 'NORMAL',
-        points: 1,
-        size: GAME_CONFIG.FOOD_TYPES.NORMAL.SIZE,
-        color: GAME_CONFIG.FOOD_TYPES.NORMAL.COLOR,
-        spawnTime: Date.now(),
-        id: Date.now() + Math.random()
-    };
-    
-    // Yem konumunun diğer yemlerle çakışmadığından emin ol
-    for (const existingFood of gameState.foods) {
-        if (getDistance(food, existingFood) < GAME_CONFIG.GRID_SIZE * 2) {
-            return spawnFood(); // Çakışma varsa yeni pozisyon dene
+        const food = {
+            x: Math.floor(pos.x / GAME_CONFIG.GRID_SIZE),
+            y: Math.floor(pos.y / GAME_CONFIG.GRID_SIZE),
+            type: 'NORMAL',
+            points: 1,
+            size: GAME_CONFIG.FOOD_TYPES.NORMAL.SIZE,
+            color: GAME_CONFIG.FOOD_TYPES.NORMAL.COLOR,
+            spawnTime: Date.now(),
+            id: Date.now() + Math.random()
+        };
+        
+        // Yem konumunun diğer yemlerle çakışıp çakışmadığını kontrol et
+        let hasCollision = false;
+        for (const existingFood of gameState.foods) {
+            if (getDistance(food, existingFood) < GAME_CONFIG.GRID_SIZE * 2) {
+                hasCollision = true;
+                break;
+            }
+        }
+        
+        // Çakışma yoksa yemi ekle ve döngüden çık
+        if (!hasCollision) {
+            gameState.foods.add(food);
+            socket.emit('foodSpawned', food);
+            return food;
         }
     }
     
-    gameState.foods.add(food);
-    socket.emit('foodSpawned', food);
-    return food;
+    // Eğer MAX_ATTEMPTS deneme sonunda uygun konum bulunamadıysa
+    console.log('Uygun yem konumu bulunamadı');
+    return null;
 }
 
 // Yem çizimi
@@ -782,54 +797,49 @@ socket.on('foodSpawned', (food) => {
 
 // Çizim İşlemleri
 function draw() {
-    offscreenCtx.save();
-    
-    // Ekranı temizle
-    offscreenCtx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Kamerayı güncelle ve uygula
-    camera.followPlayer();
-    offscreenCtx.translate(camera.x, camera.y);
-    offscreenCtx.scale(camera.scale, camera.scale);
-    
-    // Arkaplanı çiz
-    drawBackground();
-    
-    // Grid çiz
-    drawGrid();
-    
-    // Görüş alanındaki nesneleri çiz
-    const viewArea = {
-        minX: (-camera.x / camera.scale - GAME_CONFIG.RENDER_DISTANCE) / GAME_CONFIG.GRID_SIZE,
-        maxX: (-camera.x / camera.scale + canvas.width / camera.scale + GAME_CONFIG.RENDER_DISTANCE) / GAME_CONFIG.GRID_SIZE,
-        minY: (-camera.y / camera.scale - GAME_CONFIG.RENDER_DISTANCE) / GAME_CONFIG.GRID_SIZE,
-        maxY: (-camera.y / camera.scale + canvas.height / camera.scale + GAME_CONFIG.RENDER_DISTANCE) / GAME_CONFIG.GRID_SIZE
-    };
-    
-    // Görüş alanındaki yemleri çiz
-    for (const food of gameState.foods) {
-        if (isInViewArea(food, viewArea)) {
-            drawFood(food);
-        }
-    }
-    
-    // Görüş alanındaki yılanları çiz
-    for (const [id, player] of gameState.otherPlayers) {
-        if (player.snake.length > 0 && isInViewArea(player.snake[0], viewArea)) {
-            drawSnake(player.snake, player.color, player.size, player.skin);
-        }
-    }
-    
+    if (!gameState.gameStarted) return;
+
+    // Canvas'ı temizle
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+
+    // Arkaplan rengini ayarla
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Kamera pozisyonunu hesapla
+    const cameraOffset = getCameraOffset();
+
+    // Oyun alanı sınırlarını çiz
+    drawBoundaries(cameraOffset);
+
+    // Yemleri çiz
+    drawFood(cameraOffset);
+
+    // Diğer oyuncuları çiz
+    drawOtherPlayers(cameraOffset);
+
     // Yerel oyuncuyu çiz
     if (gameState.localPlayer) {
-        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, gameState.localPlayer.size || GAME_CONFIG.INITIAL_SNAKE_SIZE, gameState.localPlayer.skin || 'DEFAULT');
+        drawSnake(gameState.localPlayer.snake, gameState.localPlayer.color, cameraOffset);
     }
+}
+
+// Oyun alanı sınırlarını çiz
+function drawBoundaries(cameraOffset) {
+    const lineWidth = 2;
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = lineWidth;
     
-    offscreenCtx.restore();
-    
-    // Offscreen canvas'ı ana canvas'a kopyala
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(offscreenCanvas, 0, 0);
+    // Dünya sınırlarını çiz
+    ctx.beginPath();
+    ctx.rect(
+        GAME_CONFIG.WORLD_BOUNDS.MIN_X * GAME_CONFIG.GRID_SIZE - cameraOffset.x,
+        GAME_CONFIG.WORLD_BOUNDS.MIN_Y * GAME_CONFIG.GRID_SIZE - cameraOffset.y,
+        (GAME_CONFIG.WORLD_BOUNDS.MAX_X - GAME_CONFIG.WORLD_BOUNDS.MIN_X) * GAME_CONFIG.GRID_SIZE,
+        (GAME_CONFIG.WORLD_BOUNDS.MAX_Y - GAME_CONFIG.WORLD_BOUNDS.MIN_Y) * GAME_CONFIG.GRID_SIZE
+    );
+    ctx.stroke();
 }
 
 // Arkaplan renk paleti
