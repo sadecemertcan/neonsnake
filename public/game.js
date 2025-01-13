@@ -862,22 +862,31 @@ function render(timestamp) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Kamera pozisyonunu güncelle
-    const cameraPos = {
-        x: gameState.localPlayer.snake[0].x,
-        y: gameState.localPlayer.snake[0].y
-    };
+    camera.followPlayer();
     
     // Dünyayı çiz
-    drawWorld(ctx, cameraPos);
+    drawWorld(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
     
     // Yemleri çiz
-    drawFoods(ctx, cameraPos);
+    drawFoods(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
     
     // Diğer yılanları çiz
-    drawOtherSnakes(ctx, cameraPos);
+    drawOtherSnakes(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
     
     // Yerel oyuncunun yılanını çiz
-    drawLocalSnake(ctx, cameraPos);
+    drawLocalSnake(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
     
     // Skor tablosunu çiz
     drawScoreboard(ctx);
@@ -1421,4 +1430,111 @@ function screenToWorld(screenX, screenY, cameraPos) {
         x: (screenX + (cameraPos.x * GAME_CONFIG.GRID_SIZE)) / GAME_CONFIG.GRID_SIZE,
         y: (screenY + (cameraPos.y * GAME_CONFIG.GRID_SIZE)) / GAME_CONFIG.GRID_SIZE
     };
-} 
+}
+
+// Diğer yılanları çiz
+function drawOtherSnakes(ctx, cameraPos) {
+    if (!gameState.otherPlayers) return;
+    
+    gameState.otherPlayers.forEach(player => {
+        if (!player.snake || player.snake.length === 0) return;
+        
+        // İlk segmenti kontrol et
+        const head = player.snake[0];
+        if (!head) return;
+        
+        // Ekran dışındaysa çizme
+        const screenPos = worldToScreen(head.x, head.y, cameraPos);
+        if (isOffscreen(screenPos.x, screenPos.y)) return;
+        
+        // Yılanı çiz
+        drawSnake(ctx, player.snake, player.color);
+    });
+}
+
+// Yerel yılanı çiz
+function drawLocalSnake(ctx, cameraPos) {
+    if (!gameState.localPlayer || !gameState.localPlayer.snake) return;
+    drawSnake(ctx, gameState.localPlayer.snake, gameState.localPlayer.color);
+}
+
+// Yılan çizim fonksiyonu
+function drawSnake(ctx, snake, color) {
+    if (!snake || snake.length === 0) return;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = GAME_CONFIG.SNAKE_SIZE;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // Gölge efekti
+    ctx.shadowBlur = GAME_CONFIG.NEON_GLOW;
+    ctx.shadowColor = color;
+
+    ctx.beginPath();
+    
+    // İlk noktayı ayarla
+    const firstPos = snake[0];
+    ctx.moveTo(firstPos.x * GAME_CONFIG.GRID_SIZE, firstPos.y * GAME_CONFIG.GRID_SIZE);
+
+    // Diğer noktaları bağla
+    for (let i = 1; i < snake.length; i++) {
+        const pos = snake[i];
+        ctx.lineTo(pos.x * GAME_CONFIG.GRID_SIZE, pos.y * GAME_CONFIG.GRID_SIZE);
+    }
+
+    ctx.stroke();
+    ctx.restore();
+}
+
+// Render fonksiyonunu güncelle
+function render(timestamp) {
+    if (!gameState.localPlayer) return;
+    
+    const deltaTime = timestamp - lastTime;
+    lastTime = timestamp;
+    
+    // Canvas boyutlarını güncelle
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Arkaplanı temizle
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Kamera pozisyonunu güncelle
+    camera.followPlayer();
+    
+    // Dünyayı çiz
+    drawWorld(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
+    
+    // Yemleri çiz
+    drawFoods(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
+    
+    // Diğer yılanları çiz
+    drawOtherSnakes(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
+    
+    // Yerel oyuncunun yılanını çiz
+    drawLocalSnake(ctx, {
+        x: gameState.localPlayer.snake[0].x,
+        y: gameState.localPlayer.snake[0].y
+    });
+    
+    // Skor tablosunu çiz
+    drawScoreboard(ctx);
+    
+    // Bir sonraki kareyi çiz
+    requestAnimationFrame(render);
+}
+
+// ... existing code ... 
